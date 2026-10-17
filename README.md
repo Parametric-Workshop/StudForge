@@ -19,7 +19,7 @@ It's also a real-world test bed for FreeCAD's assembly workbench, and a FreeCAD 
 
 ## Status
 
-StudForge is part of the Parametric Workshop channel. It's early, so expect rough edges.
+StudForge is part of the [Parametric Workshop](https://www.youtube.com/@parametricworkshop) channel. It's early, so expect rough edges.
 
 ---
 
