@@ -1,0 +1,2 @@
+# Approved check suppressions. Owner edits only.
+# Format: path/to/file.py: the full line, stripped of surrounding whitespace

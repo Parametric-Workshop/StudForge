@@ -1,0 +1,18 @@
+# FreeCAD backups and lock files
+*.FCBak
+*.FCStd1
+.~lock.*
+
+# Generated exports (built by CI as release assets, not committed)
+out/
+
+# External references cloned locally (license-incompatible or large)
+refs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Local databases built from downloaded data (see catalog/census.py)
+data/

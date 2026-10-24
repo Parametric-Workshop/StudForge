@@ -1,0 +1,18 @@
+# Runs the same checks as the pre-commit hook on every push and pull request.
+# Branch protection on main requires this job to pass.
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install pinned tools from uv.lock
+        run: uv sync --locked
+      - name: Run checks
+        run: uv run scripts/check.py
