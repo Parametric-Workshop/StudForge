@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Run every repo check. The pre-commit hook and CI both call this script, so it
+# is the single definition of "passing".
+#
+# Usage: uv run scripts/check
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "== ruff check (lint)"
+ruff check .
+
+echo "== ruff format --check (formatting)"
+ruff format --check .
+
+echo "== basedpyright (type checking, strict)"
+basedpyright
+
+echo "== codespell (spelling, American English)"
+codespell
+
+echo "== suppressions (no unapproved rule overrides)"
+python3 scripts/check_suppressions.py
+
+echo "All checks passed."

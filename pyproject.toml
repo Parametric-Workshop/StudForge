@@ -1,0 +1,68 @@
+[project]
+name = "studforge"
+version = "0.0.0"
+description = "Parametric, print-tuned building bricks in FreeCAD"
+readme = "README.md"
+license = "LGPL-2.1-only"
+# Matches the Python bundled with FreeCAD 1.1.4, which runs the generator scripts.
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+# Repo checks. Exact versions are pinned in uv.lock; run `uv sync` to install.
+dev = [
+    "basedpyright",
+    "codespell",
+    "pre-commit",
+    "ruff",
+]
+
+# --- Linting and formatting -------------------------------------------------
+# Limits below are the tools' defaults. Tighten them only after reviewing real
+# code that a stricter limit would flag.
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E", "W",  # pycodestyle: basic style
+    "F",       # pyflakes: unused names, undefined names
+    "I",       # import sorting
+    "B",       # bugbear: likely bugs
+    "UP",      # pyupgrade: modern syntax for the target Python
+    "N",       # PEP 8 naming
+    "SIM",     # simplifications
+    "D",       # docstrings on every module, class and function
+    "ANN",     # type annotations on function signatures
+    "C90",     # McCabe complexity
+    "PLR",     # pylint refactor checks: too many arguments, branches, statements
+    "RUF",     # Ruff's own checks, including unused `noqa` comments
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-branches = 12
+max-statements = 50
+
+# --- Type checking ----------------------------------------------------------
+# Checks that type hints are consistent, not just present. Editors that use
+# basedpyright or Pylance read this section too, so they show the same results.
+
+[tool.basedpyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.13"
+exclude = [".venv", "data", ".git"]
+
+# --- American English -------------------------------------------------------
+
+[tool.codespell]
+builtin = "clear,rare,en-GB_to_en-US"
+# Data snapshots, lock files and license text are not ours to respell.
+skip = "./uv.lock,./LICENSE,./catalog/census-manifest.json,./catalog/builds,./data,./.git,./.venv"
