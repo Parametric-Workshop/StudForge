@@ -55,4 +55,4 @@ Significant decisions that would surprise a newcomer are recorded in [docs/adr/]
 - Say "LEGO-compatible" only as a description. Don't put "LEGO" in project, file, package or part names.
 - [openBrick](https://github.com/cwesson/openBrick) is licensed CC BY-NC-SA 4.0, which is incompatible with LGPL-2.1. Use it as a reference for dimensions and tuning values only. Never copy, translate or adapt its code.
 - Part and set data is sourced from [Rebrickable](https://rebrickable.com/downloads/). Credit it wherever that data is used.
-- Don't commit personal names, email addresses or local file paths. Commit with your GitHub no-reply email address.
+- Don't commit secrets or local file paths. Git records your name and email in every commit, so if you'd rather keep your email private, use your [GitHub no-reply address](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address).
