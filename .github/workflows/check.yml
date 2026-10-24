@@ -10,8 +10,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      # setup-uv publishes no major-version tag, so pin an exact release.
+      - uses: astral-sh/setup-uv@v10.3.0
       - name: Install pinned tools from uv.lock
         run: uv sync --locked
       - name: Run checks
