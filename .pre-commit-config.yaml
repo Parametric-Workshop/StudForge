@@ -4,8 +4,8 @@ repos:
   - repo: local
     hooks:
       - id: check
-        name: repo checks (scripts/check)
-        entry: uv run scripts/check
+        name: repo checks (scripts/check.py)
+        entry: uv run scripts/check.py
         language: system
         pass_filenames: false
         always_run: true

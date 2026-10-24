@@ -15,4 +15,4 @@ jobs:
       - name: Install pinned tools from uv.lock
         run: uv sync --locked
       - name: Run checks
-        run: uv run scripts/check
+        run: uv run scripts/check.py
