@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudForge Census</title>
+<!--
+  Template for the census viewer. census/census_viewer.py fills in the tree
+  data and writes build/census_viewer.html.
+-->
+<style>
+  :root {
+    --header-height: 44px;  /* the chart fills the window below the header */
+    --bg: #f6f6f4; --fg: #1d1d1b; --muted: #6b6b66; --line: #c9c9c2; --card: #ffffff;
+    --accent: #c8102e; --accent-soft: #f6d9de; --usage: #2a6fb0; --usage-soft: #d8e6f3;
+    --good: #2e7d32; --good-soft: #dcefdc; --warn: #a15c00; --warn-soft: #f6e6cf;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --fg: #ececea; --muted: #9b9b95; --line: #3a3a37; --card: #222220;
+      --accent: #ff5a6e; --accent-soft: #4a2228; --usage: #6aa8e6; --usage-soft: #1e3347;
+      --good: #6cc070; --good-soft: #1f3a21; --warn: #e0a64e; --warn-soft: #3d2c12;
+    }
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+               font: 13px/1.35 system-ui, sans-serif; overflow: hidden; }
+  header { padding: 10px 16px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0; }
+  header .hint { color: var(--muted); font-size: 12px; }
+  header button { font: inherit; padding: 3px 10px; border-radius: 6px; border: 1px solid var(--line);
+                  background: var(--card); color: var(--fg); cursor: pointer; }
+  #chart { width: 100vw; height: calc(100vh - var(--header-height)); }
+  .view-toggle { margin-left: auto; display: flex; gap: 4px; }
+  .view-toggle button[aria-pressed="true"] { background: var(--usage-soft); border-color: var(--usage); }
+
+  /* The nested list view: each level opens downward, like a file browser. */
+  #list { height: calc(100vh - var(--header-height)); overflow: auto; box-sizing: border-box;
+          padding: 4px 16px 24px; }
+  #list ul { list-style: none; margin: 0; padding-left: 20px; }
+  #list ul.list-root { padding-left: 0; }
+  #list summary, .list-leaf { padding: 3px 0; line-height: 1.5; }
+  #list summary { cursor: pointer; }
+  .list-leaf { padding-left: 14px; }  /* lines leaves up with rows that have an arrow */
+  .row-label { font-weight: 600; }
+  .row-label a { color: var(--usage); }
+  .muted { color: var(--muted); }
+  .figures { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  #list .chip { margin-top: 0; }
+  /* Photo at the start of shape, decorated shape and assembly rows; an empty one keeps rows lined up. */
+  .thumb { display: inline-block; width: 32px; height: 32px; margin-right: 8px; vertical-align: middle;
+           object-fit: contain; background: #fff; border-radius: 4px; }
+  span.thumb { background: none; }
+
+  .node { box-sizing: border-box; height: 100%; background: var(--card); color: var(--fg);
+          border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; overflow: hidden;
+          font-family: system-ui, sans-serif; cursor: pointer; }
+  .node.family { border-left: 4px solid var(--usage); }
+  .node.root { border: 2px solid var(--accent); }
+  .node img { width: 100%; height: 56px; object-fit: contain; background: #fff; border-radius: 6px; }
+  .label { font-weight: 600; font-size: 13px; overflow-wrap: anywhere; }
+  .label a { color: var(--usage); }  /* part number links, readable in both themes */
+  /* The library draws its "Show next" pill light gray in both themes, so give it dark text. */
+  .paging-button-wrapper { color: #1d1d1b; }
+  .sub { color: var(--muted); font-size: 11px; margin-top: 2px; max-height: 2.8em; overflow: hidden; }
+  .node.root .sub { max-height: none; white-space: pre-line; font-size: 12px;
+                    padding-left: 14px; font-variant-numeric: tabular-nums; }  /* one count per line */
+  .footer { margin-top: 6px; font-size: 10px; color: var(--muted); }
+  .count { margin-top: 4px; font-variant-numeric: tabular-nums; font-size: 12px; }
+  .bar { display: grid; grid-template-columns: 70px 1fr 44px; gap: 6px; align-items: center;
+         font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .track { height: 5px; border-radius: 3px; background: var(--accent-soft); overflow: hidden; }
+  .track.usage { background: var(--usage-soft); }
+  .track.covered { background: var(--good-soft); }
+  .fill { height: 100%; background: var(--accent); }
+  .track.usage .fill { background: var(--usage); }
+  .track.covered .fill { background: var(--good); }
+  .percent { text-align: right; font-variant-numeric: tabular-nums; }
+  .members { max-height: 4.2em; overflow: hidden; overflow-wrap: anywhere; }
+  .coverage { margin-top: 4px; font-size: 10px; color: var(--muted); }
+  .term { cursor: help; border-radius: 3px; }  /* hover for its definition */
+  .term:hover { background: var(--usage-soft); }
+  .chip { display: inline-block; margin-top: 4px; padding: 1px 7px; border-radius: 9px;
+          font-size: 10px; background: var(--line); color: var(--fg); }
+  .chip.planned, .chip.modeled { background: var(--warn-soft); color: var(--warn); }
+  .chip.validated, .chip.print-tested { background: var(--good-soft); color: var(--good); }
+</style>
+</head>
+<body>
+<header>
+  <h1>StudForge Census</h1>
+  <span class="hint" id="hint"></span>
+  <button id="fit">Fit</button>
+  <button id="collapse">Collapse all</button>
+  <div class="view-toggle" role="group" aria-label="View">
+    <button data-view="chart" aria-pressed="false">Tree diagram</button>
+    <button data-view="list" aria-pressed="false">Nested list</button>
+  </div>
+</header>
+<div id="chart"></div>
+<div id="list" hidden></div>
+<!--
+  Third-party libraries, loaded from jsDelivr at pinned versions, in this order
+  (d3-org-chart needs the other two). We never edit them; we only set their
+  options and feed them data. Each integrity value is the file's SHA-384
+  checksum: the browser refuses to run a file that doesn't match it. To update
+  a library, change its version in the URL and its integrity value together.
+  D3 is ISC-licensed, d3-flextree WTFPL and d3-org-chart MIT.
+-->
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
+  integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i"
+  crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-flextree@2.1.2/build/d3-flextree.min.js"
+  integrity="sha384-P+WwNUoMtbpiJeSu6mNURVIw6LpoFGSvOQHAF/LIX2EFsqokfdUNKN3CMeJRuNCq"
+  crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-org-chart@3.1.1/build/d3-org-chart.min.js"
+  integrity="sha384-j2Vlh7leSFYx1AI8mtBLXkmfX0U/6ItQrDKqzclCbTV0jlMFb10HxJR8iALXfXFI"
+  crossorigin="anonymous"></script>
+<script>
+const NODES = /*DATA*/null;
+const GLOSSARY = /*GLOSSARY*/null;  // glossary term -> definition, from GLOSSARY.md
+const LEAVES = new Set(["shape", "decorated", "assembly"]);  // cards with a photo
+
+// Card sizes and spacing, in pixels.
+const CARD_WIDTH = 230;
+const ROOT_CARD_WIDTH = 300;  // wide enough for its title on one line
+const CARD_HEIGHT = {
+  leaf: 210,             // photo, part number, name, usage and status
+  root: 120,             // title, the part number counts one per line, footer
+  candidates: 110,       // the totals every share is measured against
+  group: 120,            // outside Candidates: no share bars
+  groupWithShares: 165,  // under Candidates: two share bars and two coverage lines
+};
+const GAP_TO_CHILDREN = 50;
+const GAP_BETWEEN_SIBLINGS = 16;
+const HEADER_HEIGHT = parseInt(
+  getComputedStyle(document.documentElement).getPropertyValue("--header-height"));
+const CARDS_PER_PAGE = 12;   // long lists of cards show this many at a time
+const ANIMATION_MS = 500;
+const SMALLEST_SHOWN_SHARE = 0.0001;  // smaller shares show as "<0.01%"
+const MIN_BAR_PERCENT = 1;            // a tiny share still shows a sliver
+
+const formatNumber = value => value.toLocaleString("en-US");
+const escapeHtml = text => String(text ?? "").replace(/[&<>"]/g,
+  char => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[char]));
+const percentText = share => share === null ? "—"
+  : (share > 0 && share < SMALLEST_SHOWN_SHARE ? "<0.01%" : (share * 100).toFixed(2) + "%");
+
+// How the cards word each glossary term; the page shows its definition on hover.
+const TERM_FORMS = {
+  "part numbers": "part number",
+  "shapes": "shape",
+  "decorated shapes": "decorated shape",
+  "decorated": "decorated shape",
+  "unlisted shape": "unlisted shape",
+  "assemblies": "assembly",
+  "candidates": "candidate",
+  "excluded": "excluded",
+  "usage": "usage",
+  "sets": "reach",
+  "shape share": "shape share",
+  "usage share": "usage share",
+  "covered": "covered",
+  "print-tested": "print-tested",
+  "shape modeled": "shape modeled",
+};
+// Every wording, longest first, so "decorated shapes" wins over "shapes".
+const TERM_PATTERN = new RegExp(`\\b(${Object.keys(TERM_FORMS)
+  .sort((a, b) => b.length - a.length).join("|")})\\b`, "gi");
+
+// A term, underlined, with its glossary definition as a hover tooltip.
+function term(text) {
+  const definition = GLOSSARY[TERM_FORMS[text.toLowerCase()]];
+  if (!definition) return escapeHtml(text);
+  return `<span class="term" title="${escapeHtml(definition)}">${escapeHtml(text)}</span>`;
+}
+
+// Plain text with every term in it marked, for labels and notes built in Python.
+function markTerms(text) {
+  return escapeHtml(text).replace(TERM_PATTERN, match => term(match));
+}
+
+// A labeled share bar. style is "", "usage" or "covered", which picks its color.
+function bar(label, share, style) {
+  if (share === null || share === undefined) return "";
+  const width = Math.max(share * 100, share > 0 ? MIN_BAR_PERCENT : 0);
+  return `<div class="bar"><span>${label}</span><div class="track ${style}">
+    <div class="fill" style="width:${width}%"></div></div>
+    <span class="percent">${percentText(share)}</span></div>`;
+}
+
+// Coverage for a group or family: how many of its shapes are covered or in progress.
+function coverageLine(card) {
+  if (card.shapeShare == null) return "";
+  return `<div class="coverage">${term("covered")} <b>${formatNumber(card.covered)}</b>
+    · in progress ${formatNumber(card.inProgress)}</div>`;
+}
+
+// How many decorated shapes a group's shapes have, and, under Candidates, how
+// many are covered (excluded shapes are never covered).
+function decoratedLine(card) {
+  if (!card.decorated) return "";
+  const covered = card.shapeShare == null ? ""
+    : ` · ${formatNumber(card.decoratedCovered)} ${term("covered")}`;
+  return `<div class="coverage">${formatNumber(card.decorated)} ${term("decorated")}${covered}</div>`;
+}
+
+// A part number, linked to its Rebrickable page.
+const partNumberLink = partNumber => `<a href="https://rebrickable.com/parts/${encodeURIComponent(partNumber)}/"
+  target="_blank" rel="noopener">${escapeHtml(partNumber)}</a>`;
+
+// The photo, linked part number and name at the top of every leaf card.
+function leafTop(card) {
+  // A photo that fails to load is dropped rather than shown as a broken image.
+  const photo = card.image ? `<img src="${escapeHtml(card.image)}" alt="" onerror="this.remove()">` : "";
+  // An unlisted shape has no Rebrickable page to link to.
+  const label = card.unlisted
+    ? `${escapeHtml(card.label)} <span class="sub">· ${term("unlisted shape")}, not on Rebrickable</span>`
+    : partNumberLink(card.label);
+  return `${photo}<div class="label">${label}</div><div class="sub">${escapeHtml(card.sub)}</div>`;
+}
+
+// A card's coverage status as a colored chip.
+function statusChip(card) {
+  const status = card.status || "not started";
+  return `<span class="chip ${status.replace(" ", "-")}">${escapeHtml(status)}</span>`;
+}
+
+// Usage, reach, years and coverage status, shared by shape and decorated cards.
+function usageLine(card) {
+  return `<div class="count">${term("usage")} <b>${formatNumber(card.usage)}</b> · ${formatNumber(card.reach)} ${term("sets")} · ${escapeHtml(card.years)}</div>
+    ${bar(term("usage share"), card.usageShare, "usage")}
+    ${statusChip(card)}`;
+}
+
+// What a shape card holds below it: decorated shapes and assemblies.
+function holds(card) {
+  const lines = [];
+  if (card.decorated) lines.push(`${formatNumber(card.decorated)} ${term("decorated")}`);
+  if (card.assemblies) lines.push(`in ${formatNumber(card.assemblies)} ${term("assemblies")}`);
+  return lines.length ? `<div class="coverage">${lines.join(" · ")}</div>` : "";
+}
+
+// The HTML inside one card. d3-org-chart passes its own node; our record is node.data.
+function content(node) {
+  const card = node.data;
+  if (card.kind === "shape") {
+    return `<div class="node shape">${leafTop(card)}${usageLine(card)}${holds(card)}</div>`;
+  }
+  if (card.kind === "decorated") {
+    return `<div class="node decorated">${leafTop(card)}${usageLine(card)}</div>`;
+  }
+  if (card.kind === "assembly") {
+    const decorated = card.decorated
+      ? `<div class="coverage">${formatNumber(card.decorated)} ${term("decorated")}</div>` : "";
+    return `<div class="node assembly">${leafTop(card)}
+      <div class="count members">contains ${card.members.map(partNumberLink).join(", ")}</div>
+      ${decorated}${statusChip(card)}
+    </div>`;
+  }
+  if (card.kind === "root") {
+    return `<div class="node root">
+      <div class="label">${markTerms(card.label)}</div><div class="sub">${markTerms(card.sub)}</div>
+      <div class="footer">${escapeHtml(card.footer)}</div>
+    </div>`;
+  }
+  const usage = card.usage ? ` · ${term("usage")} ${formatNumber(card.usage)}` : "";
+  if (card.kind === "candidates") {
+    // The totals every share is measured against, so no share bars.
+    return `<div class="node candidates">
+      <div class="label">${markTerms(card.label)}</div>
+      <div class="count"><b>${formatNumber(card.shapes)}</b> ${term("shapes")}${usage}</div>
+      <div class="count">${formatNumber(card.decorated)} ${term("decorated shapes")}</div>
+      <div class="coverage">${term("covered")} <b>${formatNumber(card.covered)}</b>
+        (${percentText(card.coveredUsageShare)} of ${term("usage")}) · in progress ${formatNumber(card.inProgress)}</div>
+    </div>`;
+  }
+  return `<div class="node ${card.kind}">
+    <div class="label">${markTerms(card.label)}</div><div class="sub">${markTerms(card.sub)}</div>
+    <div class="count"><b>${formatNumber(card.shapes)}</b> ${term("shapes")}${usage}</div>
+    ${bar(term("shape share"), card.shapeShare, "")}${bar(term("usage share"), card.usageShare, "usage")}
+    ${coverageLine(card)}${decoratedLine(card)}
+  </div>`;
+}
+
+function cardHeight(card) {
+  if (LEAVES.has(card.kind)) return CARD_HEIGHT.leaf;
+  if (card.kind === "root") return CARD_HEIGHT.root;
+  if (card.kind === "candidates") return CARD_HEIGHT.candidates;
+  return card.shapeShare == null ? CARD_HEIGHT.group : CARD_HEIGHT.groupWithShares;
+}
+
+const chart = new d3.OrgChart()
+  .container("#chart")
+  .svgWidth(window.innerWidth)
+  .svgHeight(window.innerHeight - HEADER_HEIGHT)
+  .data(NODES)
+  .nodeWidth(node => node.data.kind === "root" ? ROOT_CARD_WIDTH : CARD_WIDTH)
+  .nodeHeight(node => cardHeight(node.data))
+  .childrenMargin(() => GAP_TO_CHILDREN)
+  .siblingsMargin(() => GAP_BETWEEN_SIBLINGS)
+  .compact(false)
+  .initialExpandLevel(1)
+  .duration(ANIMATION_MS)
+  .setActiveNodeCentered(true)
+  .minPagingVisibleNodes(() => CARDS_PER_PAGE)
+  .pagingStep(() => CARDS_PER_PAGE)
+  .nodeContent(content)
+  .render();
+
+document.getElementById("fit").onclick = () => chart.fit();
+document.getElementById("collapse").onclick = () => chart.collapseAll().fit();
+
+// --- Nested list view -----------------------------------------------------------
+
+const CHILDREN = new Map();  // card id -> its child cards, in order
+for (const card of NODES) {
+  if (card.parentId === null) continue;
+  if (!CHILDREN.has(card.parentId)) CHILDREN.set(card.parentId, []);
+  CHILDREN.get(card.parentId).push(card);
+}
+
+// A card's main figures on one line, for the nested list.
+function listFigures(card) {
+  const figures = [];
+  if (card.kind === "shape" || card.kind === "decorated") {
+    figures.push(`${term("usage")} ${formatNumber(card.usage)}`, `${formatNumber(card.reach)} ${term("sets")}`);
+    if (card.years) figures.push(escapeHtml(card.years));
+    if (card.usageShare != null) figures.push(`${percentText(card.usageShare)} of ${term("usage")}`);
+    if (card.decorated) figures.push(`${formatNumber(card.decorated)} ${term("decorated")}`);
+    if (card.assemblies) figures.push(`in ${formatNumber(card.assemblies)} ${term("assemblies")}`);
+  } else if (card.kind === "assembly") {
+    figures.push(`contains ${card.members.map(partNumberLink).join(", ")}`);
+    if (card.decorated) figures.push(`${formatNumber(card.decorated)} ${term("decorated")}`);
+  } else if (card.kind !== "root") {
+    figures.push(`${formatNumber(card.shapes)} ${term("shapes")}`, `${term("usage")} ${formatNumber(card.usage)}`);
+    // Candidates is what every share is measured against, so it shows none.
+    if (card.shapeShare != null && card.kind !== "candidates") {
+      figures.push(`${percentText(card.shapeShare)} of ${term("shapes")}`,
+                   `${percentText(card.usageShare)} of ${term("usage")}`);
+    }
+    if (card.shapeShare != null) {
+      figures.push(`${term("covered")} ${formatNumber(card.covered)}`, `in progress ${formatNumber(card.inProgress)}`);
+    }
+    if (card.decorated) figures.push(`${formatNumber(card.decorated)} ${term("decorated")}`);
+  }
+  return figures.join(" · ");
+}
+
+// One row of the nested list: label, name or note, figures and status.
+function listRow(card) {
+  const leaf = LEAVES.has(card.kind);
+  let label = leaf && !card.unlisted ? partNumberLink(card.label) : markTerms(card.label);
+  if (card.unlisted) label += ` <span class="muted">· ${term("unlisted shape")}, not on Rebrickable</span>`;
+  const note = card.sub.replace(/\n/g, " · ");  // the top card's counts are one per line
+  const sub = note ? ` <span class="muted">${leaf ? escapeHtml(note) : markTerms(note)}</span>` : "";
+  const status = leaf ? ` ${statusChip(card)}` : "";
+  const footer = card.footer ? ` <span class="muted">· ${escapeHtml(card.footer)}</span>` : "";
+  // A photo that fails to load is dropped, like on the cards; lazy loading waits
+  // until the row is scrolled into view.
+  const photo = !leaf ? ""
+    : card.image ? `<img class="thumb" src="${escapeHtml(card.image)}" alt="" loading="lazy" onerror="this.remove()">`
+    : `<span class="thumb"></span>`;
+  return `${photo}<span class="row-label">${label}</span>${sub} <span class="figures">${listFigures(card)}</span>${status}${footer}`;
+}
+
+// A list item for a card. A card with children becomes a <details> row whose
+// children are only built the first time it opens, so a big level costs nothing
+// until you look at it.
+function listItem(card) {
+  const item = document.createElement("li");
+  const children = CHILDREN.get(card.id);
+  if (!children) {
+    item.innerHTML = `<div class="list-leaf">${listRow(card)}</div>`;
+    return item;
+  }
+  const details = document.createElement("details");
+  details.innerHTML = `<summary>${listRow(card)} <span class="muted">(${formatNumber(children.length)})</span></summary>`;
+  details.addEventListener("toggle", () => {
+    if (!details.open || details.dataset.built) return;
+    const list = document.createElement("ul");
+    for (const child of children) list.append(listItem(child));
+    details.append(list);
+    details.dataset.built = "yes";
+  });
+  item.append(details);
+  return item;
+}
+
+// --- Switching views --------------------------------------------------------------
+
+const VIEWS = {
+  chart: { element: document.getElementById("chart"),
+           hint: "Click the button under a card to open or close it · drag to pan · scroll to zoom" },
+  list: { element: document.getElementById("list"),
+          hint: "Click a row to open or close it · Ctrl+F finds text in open rows" },
+};
+const SHARED_HINT = " · shares are of all candidate shapes · data from Rebrickable";
+
+function showView(name) {
+  for (const [key, view] of Object.entries(VIEWS)) view.element.hidden = key !== name;
+  for (const button of document.querySelectorAll(".view-toggle button")) {
+    button.setAttribute("aria-pressed", String(button.dataset.view === name));
+  }
+  document.getElementById("hint").textContent = VIEWS[name].hint + SHARED_HINT;
+  document.getElementById("fit").hidden = name !== "chart";
+  document.getElementById("collapse").hidden = name !== "chart";
+  const list = VIEWS.list.element;
+  if (name === "list" && !list.firstChild) {  // build the top of the list the first time
+    const top = document.createElement("ul");
+    top.className = "list-root";
+    const item = listItem(NODES[0]);
+    top.append(item);
+    list.append(top);
+    item.querySelector("details").open = true;
+  }
+  try { localStorage.setItem("census-view", name); } catch { /* storage blocked: fine */ }
+}
+
+for (const button of document.querySelectorAll(".view-toggle button")) {
+  button.onclick = () => showView(button.dataset.view);
+}
+let savedView = null;
+try { savedView = localStorage.getItem("census-view"); } catch { /* storage blocked */ }
+showView(savedView === "list" ? "list" : "chart");
+</script>
+</body>
+</html>
