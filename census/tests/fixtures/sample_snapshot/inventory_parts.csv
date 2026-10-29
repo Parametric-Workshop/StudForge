@@ -1,0 +1,14 @@
+inventory_id,part_num,color_id,quantity,is_spare,img_url
+1,3001,4,2,False,https://img.test/3001.jpg
+1,3001,4,1,True,
+1,3068bpr0001,15,1,False,https://img.test/3068bpr0001.jpg
+1,67401,15,1,False,
+1,4624c01,0,4,False,
+2,3001,4,99,False,
+3,3001,4,5,False,
+3,3068a,15,1,False,
+4,973,15,1,False,
+3,4624c01pr0001,0,3,False,
+1,970c00pr0001,0,1,False,
+1,973c04h02pr0001,0,1,False,
+1,01642pr0002,0,2,False,https://img.test/01642pr0002.jpg

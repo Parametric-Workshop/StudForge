@@ -1,0 +1,21 @@
+{
+  "source": "Rebrickable (https://rebrickable.com/downloads/)",
+  "snapshot_date": "2026-10-28",
+  "files": {
+    "color_mappings.csv": "d67da183c57811768343b1cba40d981123e974a8797748bdaf9c6adc022d3f32",
+    "colors.csv": "677a8806dc2782f6ddfd6721e8e28f7259547df048544e4c05320588420e3b80",
+    "elements.csv": "95dfd86c34f3aa42882e095c546d4446ea488283622ceaf432215d202c04c511",
+    "inventories.csv": "a58ada2b4accbdf5aee7e73882d7d0c9ca8edad8c8a6853d44b038aa219af56f",
+    "inventory_minifigs.csv": "c09b5b3f20fa844e3eec10bb072b1e15c414239ff774c76536407ef2a80ab072",
+    "inventory_parts.csv": "b4bf2d2cc0ae7a3a13aa0b821e0de2add8a1ee9dd9b5bcf319c627bd12b32af4",
+    "inventory_sets.csv": "bf7638a592be8ace703f2c9b25ea300eb5d2c221f6099794b2e6b5fa32034ce3",
+    "minifigs.csv": "a87bfd82c208751f722246775f9b14a271c0cb66ddf732046aeda491193678ad",
+    "part_categories.csv": "d5413d4b0e296c9e87c53cd82041fd1393c97106677e6644113585c9a3d80ba4",
+    "part_mappings.csv": "0c8d95b44b0accdf59fde1d7500a551235592d0d3eb02aabd7fb1e80bd97abcb",
+    "part_relationships.csv": "c0506b20c3306be959b9e93b6904318cbd48a4370aa80324842331955de27c3d",
+    "parts.csv": "2bed67c82514b6a2213ca418094728d78ca29ded8b0062abd79c7b8b0c1772c9",
+    "set_mappings.csv": "b96a14c94db8cee39926048e49cc422b21df2016e509570a127d85f8f7ee20fa",
+    "sets.csv": "9288036747b297eb5c7e8f812cab31f4c73abc421b375cf1384bf29e66f2a55c",
+    "themes.csv": "828f0d8b3152c462c8436927c77a543beedea744635b2a0daf1869ceb7758a32"
+  }
+}

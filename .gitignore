@@ -14,5 +14,11 @@ __pycache__/
 *.pyc
 .venv/
 
-# Local databases built from downloaded data (see catalog/census.py)
-data/
+# Generated locally: the census database and the viewer page. Safe to delete;
+# the census scripts rebuild it.
+build/
+
+# Rebrickable snapshots, one folder per download date. Not safe to delete:
+# Rebrickable allows one download a day, and older snapshots can't be fetched
+# again.
+downloads/

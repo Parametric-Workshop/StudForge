@@ -1,0 +1,327 @@
+# Families: first guesses at which parametric generator each shape belongs to,
+# based on words in its Rebrickable name. Only categories listed here get a
+# family level in the census viewer; shapes in other categories sit directly
+# under their category.
+#
+# For each category, rules are checked in order and the first match wins. A rule
+# matches when any of its words appears in the shape's name; a word starting with
+# "re:" is a regular expression. The last rule has no words and catches the rest.
+#
+# These are guesses for browsing. Settle a category's families properly before
+# writing its generator.
+
+# --- Plates --------------------------------------------------------------------
+
+[[family."Plates"]]
+name = "Corner plate"
+words = ["Corner"]
+
+[[family."Plates"]]
+name = "Cutout and cross plate"
+words = ["Cutout", "Cross"]
+
+[[family."Plates"]]
+name = "Thin plate"
+words = ["2/3"]
+
+[[family."Plates"]]
+name = "Rectangular plate"
+words = []
+
+[[family."Plates Special"]]
+name = "Bracket"
+words = ["Bracket"]
+
+[[family."Plates Special"]]
+name = "Jumper and reduced-stud plate"
+words = ["Jumper", "Only 2 studs", "with 2 Studs", "Center Studs", "with 1 Stud"]
+
+[[family."Plates Special"]]
+name = "Clip plate"
+words = ["Clip"]
+
+[[family."Plates Special"]]
+name = "Towball plate"
+words = ["Towball"]
+
+[[family."Plates Special"]]
+name = "Wheel holder plate"
+words = ["Wheel Holder", "Wheels Holder"]
+
+[[family."Plates Special"]]
+name = "Pin and hole plate"
+words = ["Technic Plate", "Pin Hole", "Pin", "Axle Hole"]
+
+[[family."Plates Special"]]
+name = "Bar and handle plate"
+words = ["Handle", "Bar ", "Bar,", "Bar Frame", "Ladder"]
+
+[[family."Plates Special"]]
+name = "Door rail plate"
+words = ["Door Rail"]
+
+[[family."Plates Special"]]
+name = "Tooth plate"
+words = ["Tooth", "Teeth"]
+
+[[family."Plates Special"]]
+name = "Side- and edge-stud plate"
+words = ["On Side", "on Side", "Studs on", "Studs in"]
+
+[[family."Plates Special"]]
+name = "Recessed plate"
+words = ["Recessed"]
+
+[[family."Plates Special"]]
+name = "Grille plate"
+words = ["Grille", "Grill"]
+
+[[family."Plates Special"]]
+name = "Splat gear plate"
+words = ["Splat Gear"]
+
+[[family."Plates Special"]]
+name = "Train coupler plate"
+words = ["Train Coupler"]
+
+[[family."Plates Special"]]
+name = "Round and polygon special plate"
+words = ["Round", "Octagonal", "Hexagonal", "Star"]
+
+[[family."Plates Special"]]
+name = "Other special plate"
+words = []
+
+[[family."Plates Round Curved and Dishes"]]
+name = "Dish"
+words = ["Dish", "Disc"]
+
+[[family."Plates Round Curved and Dishes"]]
+name = "Half round plate"
+words = ["Half"]
+
+[[family."Plates Round Curved and Dishes"]]
+name = "Heart plate"
+words = ["Heart"]
+
+[[family."Plates Round Curved and Dishes"]]
+name = "Round corner plate"
+words = ["Corner"]
+
+[[family."Plates Round Curved and Dishes"]]
+name = "Rounded-end plate"
+words = ["Rounded"]
+
+[[family."Plates Round Curved and Dishes"]]
+name = "Round plate"
+words = []
+
+[[family."Plates Wedged"]]
+name = "Cut-corner wedge plate"
+words = ["Cut Corner"]
+
+[[family."Plates Wedged"]]
+name = "Wing plate"
+words = ["Wing"]
+
+[[family."Plates Wedged"]]
+name = "Boat bow plate"
+words = ["Boat Bow"]
+
+[[family."Plates Wedged"]]
+name = "Left/right wedge plate"
+words = ["Left", "Right"]
+
+[[family."Plates Wedged"]]
+name = "Other wedge plate"
+words = []
+
+[[family."Baseplates"]]
+name = "Raised baseplate"
+words = ["Raised", "Ramp", "Support"]
+
+[[family."Baseplates"]]
+name = "Track baseplate"
+words = ["Track System"]
+
+[[family."Baseplates"]]
+name = "Road baseplate"
+words = ["Stud Straight", "Stud Curve", "Stud T", "Crossroads", "Stud Angled", "Road", "Runway"]
+
+[[family."Baseplates"]]
+name = "Sports field baseplate"
+words = ["Sports"]
+
+[[family."Baseplates"]]
+name = "Flat baseplate"
+words = []
+
+# --- Bricks --------------------------------------------------------------------
+
+[[family."Bricks"]]
+name = "Minitalia brick"
+words = ["Minitalia"]
+
+[[family."Bricks"]]
+name = "Soft brick"
+words = ["Soft"]
+
+[[family."Bricks"]]
+name = "Corner brick"
+words = ["Corner"]
+
+[[family."Bricks"]]
+name = "Tall brick"
+words = ['re:\d+ x \d+ x \d+']
+
+[[family."Bricks"]]
+name = "Rectangular brick"
+words = []
+
+[[family."Bricks Sloped"]]
+name = "Minitalia slope"
+words = ["Minitalia"]
+
+[[family."Bricks Sloped"]]
+name = "Inverted slope"
+words = ["Inverted"]
+
+[[family."Bricks Sloped"]]
+name = "Roof piece"
+words = ["Roof"]
+
+[[family."Bricks Sloped"]]
+name = "Slope with cutout"
+words = ["Cutout"]
+
+[[family."Bricks Sloped"]]
+name = "Multi-face slope"
+words = ["Double", "Triple", "Quadruple", "Quad", "Convex", "Concave", "Pyramid"]
+
+[[family."Bricks Sloped"]]
+name = "Low slope (cheese)"
+words = ["2/3"]
+
+[[family."Bricks Sloped"]]
+name = "Straight slope"
+words = []
+
+[[family."Bricks Curved"]]
+name = "Arch"
+words = ["Arch"]
+
+[[family."Bricks Curved"]]
+name = "Ramp"
+words = ["Ramp"]
+
+[[family."Bricks Curved"]]
+name = "Inverted curved brick"
+words = ["Inverted"]
+
+[[family."Bricks Curved"]]
+name = "Compound curved brick"
+words = ["Double", "Triple", "Quad", "Corner"]
+
+[[family."Bricks Curved"]]
+name = "Curved brick, no studs"
+words = ["No Studs"]
+
+[[family."Bricks Curved"]]
+name = "Curved brick with studs"
+words = []
+
+[[family."Bricks Special"]]
+name = "Braille brick"
+words = ["Braille"]
+
+[[family."Bricks Special"]]
+name = "Bracket brick"
+words = ["Bracket"]
+
+[[family."Bricks Special"]]
+name = "Side-stud (SNOT) brick"
+words = ["Headlight", "Stud on", "Studs on", "Studs On", "Side Studs"]
+
+[[family."Bricks Special"]]
+name = "Clip, bar and handle brick"
+words = ["Clip", "Handle", "Bar", "Scroll"]
+
+[[family."Bricks Special"]]
+name = "Pin and axle brick"
+words = ["Pin", "Axle"]
+
+[[family."Bricks Special"]]
+name = "Textured brick"
+words = ["Palisade", "Masonry", "Grille", "Groove"]
+
+[[family."Bricks Special"]]
+name = "Joint and function brick"
+words = ["Rotation Joint", "Coupling", "Spring", "Flywheel", "Spinner"]
+
+[[family."Bricks Special"]]
+name = "Slide and tube"
+words = ["Slide", "Tube"]
+
+[[family."Bricks Special"]]
+name = "Octagonal brick"
+words = ["Octagonal"]
+
+[[family."Bricks Special"]]
+name = "Other special brick"
+words = []
+
+[[family."Bricks Round and Cones"]]
+name = "Round tube"
+words = ["Tube"]
+
+[[family."Bricks Round and Cones"]]
+name = "Cone"
+words = ["Cone"]
+
+[[family."Bricks Round and Cones"]]
+name = "Dome and sphere"
+words = ["Dome", "Sphere", "Ball", "Orb"]
+
+[[family."Bricks Round and Cones"]]
+name = "Cylinder"
+words = ["Cylinder"]
+
+[[family."Bricks Round and Cones"]]
+name = "Macaroni brick"
+words = ["Macaroni"]
+
+[[family."Bricks Round and Cones"]]
+name = "Round corner brick"
+words = ["Corner"]
+
+[[family."Bricks Round and Cones"]]
+name = "Tower roof"
+words = ["Roof", "Tower"]
+
+[[family."Bricks Round and Cones"]]
+name = "Curved round brick"
+words = ["Curved"]
+
+[[family."Bricks Round and Cones"]]
+name = "Round brick"
+words = []
+
+[[family."Bricks Wedged"]]
+name = "Facet brick"
+words = ["Facet"]
+
+[[family."Bricks Wedged"]]
+name = "Curved wedge brick"
+words = ["Curved"]
+
+[[family."Bricks Wedged"]]
+name = "Sloped wedge brick"
+words = ["Sloped"]
+
+[[family."Bricks Wedged"]]
+name = "Angled wedge brick"
+words = ["Angled"]
+
+[[family."Bricks Wedged"]]
+name = "Other wedge brick"
+words = []

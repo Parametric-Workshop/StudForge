@@ -4,7 +4,7 @@ Thanks for helping. StudForge is meant to be readable by Python hobbyists, so cl
 
 ## Setup
 
-You need [uv](https://docs.astral.sh/uv/) and git. FreeCAD 1.1.x is only needed for the part generators.
+You need [uv](https://docs.astral.sh/uv/) and git. FreeCAD 1.1.x is only needed for the shape generators.
 
 ```sh
 uv sync                      # installs the pinned check tools into .venv
@@ -35,9 +35,9 @@ If a check fails, fix the code rather than silencing the check. If you think a r
 
 Tools can't check these, so reviewers will:
 
-- **Use the project's vocabulary.** Terms like part, design, family, build and print offset have specific meanings, defined in [GLOSSARY.md](GLOSSARY.md). Use them, and avoid the synonyms listed there.
+- **Use the project's vocabulary.** Terms like shape, part number, design, family, set and print offset have specific meanings, defined in [GLOSSARY.md](GLOSSARY.md). Use them, and avoid the synonyms listed there.
 - **Spell names out.** Write `part_num` and `set_inventories`, not `pn` and `si`. Short names are fine for short loops (`for r in rows`).
-- **Give each function one job**, and name it after that job: `load_sets`, `count_usage`, `write_census`.
+- **Give each function one job**, and name it after that job: `load_sets`, `count_usage`, `write_shapes`.
 - **Comment the why, not the what.** The code already says what it does. Comments explain decisions, data quirks and anything surprising.
 - **Name your numbers.** A bare `5` or `0.1` in the code should be a named constant with a comment saying where it comes from.
 - **Prefer a plain loop over a clever one-liner.** A nested comprehension that takes a minute to read should be a loop.
@@ -52,7 +52,7 @@ Significant decisions that would surprise a newcomer are recorded in [docs/adr/]
 ## Naming and licensing
 
 - Code is licensed under LGPL-2.1, matching FreeCAD.
-- Say "LEGO-compatible" only as a description. Don't put "LEGO" in project, file, package or part names.
+- Say "LEGO-compatible" only as a description. Don't put "LEGO" in project, file, package or shape names.
 - [openBrick](https://github.com/cwesson/openBrick) is licensed CC BY-NC-SA 4.0, which is incompatible with LGPL-2.1. Use it as a reference for dimensions and tuning values only. Never copy, translate or adapt its code.
 - Part and set data is sourced from [Rebrickable](https://rebrickable.com/downloads/). Credit it wherever that data is used.
 - Don't commit secrets or local file paths. Git records your name and email in every commit, so if you'd rather keep your email private, use your [GitHub no-reply address](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address).

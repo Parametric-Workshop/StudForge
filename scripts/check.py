@@ -21,6 +21,7 @@ CHECKS = [
     ("ruff format --check (formatting)", ["ruff", "format", "--check", "."]),
     ("basedpyright (type checking, strict)", ["basedpyright"]),
     ("codespell (spelling, American English)", ["codespell"]),
+    ("pytest (tests)", ["pytest", "-q"]),
     (
         "suppressions (no unapproved rule overrides)",
         [sys.executable, "scripts/check_suppressions.py"],
