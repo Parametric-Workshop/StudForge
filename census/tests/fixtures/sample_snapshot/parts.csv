@@ -1,0 +1,22 @@
+part_num,name,part_cat_id,part_material
+3001,Brick 2 x 4,11,Plastic
+3068a,Tile 2 x 2 without Groove,19,Plastic
+3068b,Tile 2 x 2 with Groove,19,Plastic
+3068bpr0001,Tile 2 x 2 with Print,19,Plastic
+3068bpr0002,Tile 2 x 2 with Other Print,19,Plastic
+67401,Tile 2 x 2 with Print and Sub-part,19,Plastic
+4624c01,Wheel with Tire [Complete Assembly],29,Plastic
+4624,Wheel,29,Plastic
+3641,Tire,29,Rubber
+973,Torso,60,Plastic
+0001,Sticker Sheet,58,Cardboard/Paper
+4624c01pr0001,Wheel with Tire with Print,29,Plastic
+970c00,Hips and Legs [Plain],61,Plastic
+970c00pr0001,Hips and Legs with Belt Print,61,Plastic
+250,Duplo Brick 2 x 6 x 2,4,Plastic
+250pr0001,HO Scale Tank Truck,50,Plastic
+3814,Torso [Plain],60,Plastic
+973c04h02pr0001,Torso with Jacket Print,60,Plastic
+01642pr0001,Wings with Stripes Print,27,Plastic
+01642pr0002,Wings with Dots Print,27,Plastic
+973d14pr0001,Torso Odd Arms with Sweater Print,60,Plastic
