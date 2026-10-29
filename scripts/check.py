@@ -14,6 +14,11 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 
+# A failing check can print thousands of lines (codespell on a large generated
+# file, say). Show this many of them and count the rest, so the summary stays
+# readable.
+MAX_OUTPUT_LINES = 20
+
 # (description, command). Every check runs, even after one fails, so a single
 # run shows everything that needs fixing.
 CHECKS = [
@@ -34,7 +39,19 @@ def main() -> int:
     failed: list[str] = []
     for description, command in CHECKS:
         print(f"== {description}", flush=True)
-        result = subprocess.run(command, cwd=REPO, check=False)
+        result = subprocess.run(
+            command,
+            cwd=REPO,
+            check=False,
+            capture_output=True,
+            text=True,
+            errors="replace",
+        )
+        lines = (result.stdout + result.stderr).splitlines()
+        if lines:
+            print("\n".join(lines[:MAX_OUTPUT_LINES]))
+        if len(lines) > MAX_OUTPUT_LINES:
+            print(f"... and {len(lines) - MAX_OUTPUT_LINES:,} more lines")
         if result.returncode != 0:
             failed.append(description)
 

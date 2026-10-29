@@ -36,7 +36,7 @@ If a check fails, fix the code rather than silencing the check. If you think a r
 Tools can't check these, so reviewers will:
 
 - **Use the project's vocabulary.** Terms like shape, part number, design, family, set and print offset have specific meanings, defined in [GLOSSARY.md](GLOSSARY.md). Use them, and avoid the synonyms listed there.
-- **Spell names out.** Write `part_num` and `set_inventories`, not `pn` and `si`. Short names are fine for short loops (`for r in rows`).
+- **Spell names out.** Write `part_num` and `set_inventories`, not `pn` and `si`. A few common short forms are fine where the meaning is clear: `inv` for an inventory and `qty` for a quantity. Short names are also fine for short loops (`for r in rows`).
 - **Give each function one job**, and name it after that job: `load_sets`, `count_usage`, `write_shapes`.
 - **Comment the why, not the what.** The code already says what it does. Comments explain decisions, data quirks and anything surprising.
 - **Name your numbers.** A bare `5` or `0.1` in the code should be a named constant with a comment saying where it comes from.
