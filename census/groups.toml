@@ -1,0 +1,87 @@
+# Category groups: how the census viewer gathers Rebrickable categories of the
+# standard brick system into a level of its own. Each group lists the Rebrickable
+# categories it contains; every standard category must appear in exactly one group.
+# Groups are for browsing only; families (families.toml) decide how shapes are modeled.
+
+[groups]
+"Plates" = [
+    "Plates",
+    "Plates Special",
+    "Plates Round Curved and Dishes",
+    "Plates Wedged",
+    "Baseplates",
+]
+"Bricks" = [
+    "Bricks",
+    "Bricks Sloped",
+    "Bricks Curved",
+    "Bricks Special",
+    "Bricks Round and Cones",
+    "Bricks Wedged",
+]
+"Technic" = [
+    "Technic Pins",
+    "Technic Connectors",
+    "Technic Beams",
+    "Technic Beams Special",
+    "Technic Axles",
+    "Technic Bricks",
+    "Technic Bushes",
+    "Technic Special",
+    "Technic Gears",
+    "Technic Panels",
+    "Technic Steering, Suspension and Engine",
+    "Pneumatics",
+    "Mechanical",
+]
+"Tiles" = ["Tiles", "Tiles Round and Curved", "Tiles Special"]
+"Minifigs" = [
+    "Minifigs",
+    "Minifig Accessories",
+    "Minifig Heads",
+    "Minifig Headwear",
+    "Minifig Headwear Accessories",
+    "Minifig Hipwear",
+    "Minifig Lower Body",
+    "Minifig Neckwear",
+    "Minifig Shields, Weapons, & Tools",
+    "Minifig Upper Body",
+]
+"Structure" = [
+    "Panels",
+    "Windows and Doors",
+    "Bars, Ladders and Fences",
+    "Supports, Girders and Cranes",
+    "Containers",
+    "Flags, Banners and Signs",
+]
+"Vehicles" = [
+    "Wheels and Tyres",
+    "Windscreens and Fuselage",
+    "Transportation - Land",
+    "Transportation - Sea and Air",
+]
+"Moving parts" = [
+    "Hinges, Arms and Turntables",
+    "Projectiles / Launchers",
+    "Magnets and Holders",
+    "String, Bands and Reels",
+    "Tubes and Hoses",
+]
+"Nature and effects" = ["Plants & Trees", "Rock", "Energy Effects"]
+"Creatures and large figures" = [
+    "Animals / Creatures",
+    "Animal / Creature Body Parts",
+    "Animal / Creature Accessories",
+    "Large Buildable Figures",
+    "Non-Buildable Figures (Duplo, Fabuland, etc)",
+]
+"Other product lines" = ["Clikits", "Znap", "Belville, Scala and Fabuland", "HO Scale"]
+"Electronics and miscellaneous" = [
+    "Electronics",
+    "Pen & Watch",
+    "Tools",
+    "Non-System Parts",
+    "Other",
+]
+"Minidolls" = ["Minidoll Heads", "Minidoll Upper Body", "Minidoll Lower Body"]
