@@ -60,6 +60,9 @@ known-first-party = ["census", "freecad_generator"]
 # Tests compare against expected numbers, which read best written inline.
 "census/tests/**" = ["PLR2004"]
 "freecad_generator/tests/**" = ["PLR2004"]
+# Stubs describe FreeCAD's own API, whose names (addObject, setExpression) are
+# camelCase and can't be renamed.
+"typings/**" = ["N802"]
 
 # --- Tests ------------------------------------------------------------------
 
@@ -77,6 +80,9 @@ typeCheckingMode = "strict"
 pythonVersion = "3.13"
 exclude = [".venv", "build", "downloads", ".git"]
 extraPaths = ["census/tests"]  # so one test file can import helpers from another
+# FreeCAD, Part and Sketcher exist only inside FreeCAD's Python; typings/ describes
+# the parts we use, so the missing module source is expected.
+reportMissingModuleSource = false
 
 # --- American English -------------------------------------------------------
 
