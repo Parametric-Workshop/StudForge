@@ -77,6 +77,11 @@ class ProfileFeature(DocumentObject):
 
 class Document(DocumentObject):
     Objects: list[DocumentObject]
+    Label: str
+    CreatedBy: str
+    Company: str
+    Comment: str
+    Meta: dict[str, str]
     def getObject(self, name: str) -> DocumentObject | None: ...
     @overload
     def addObject(self, type: Literal["App::VarSet"], name: str) -> VarSet: ...

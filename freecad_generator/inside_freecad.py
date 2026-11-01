@@ -3,7 +3,8 @@
 The generator's code needs FreeCAD's own Python, so it runs inside FreeCAD. The
 client (cli.py) starts FreeCAD on this file and hands it one command:
 
-    verify    check that a generated file survives a person's edits
+    generate [--all]    build each shape's FreeCAD and STEP file
+    verify              check that a generated file survives a person's edits
 
 This file reads the command and calls its operation. FreeCAD's exit code is the
 operation's: 1 if anything failed.
@@ -18,6 +19,7 @@ from pathlib import Path
 # FreeCAD runs this file by its path, so Python doesn't know the repo folder yet.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from freecad_generator.generating.run_generate import generate
 from freecad_generator.verifying.run_verify import verify
 
 
@@ -25,8 +27,13 @@ def main() -> int:
     """Run the command FreeCAD was handed; return 1 if it failed."""
     parser = argparse.ArgumentParser(prog="python3 -m freecad_generator")
     commands = parser.add_subparsers(dest="command", required=True)
+    generating = commands.add_parser("generate")
+    generating.add_argument("--all", action="store_true", help="rebuild every shape")
     commands.add_parser("verify")
-    parser.parse_args(passed_arguments())
+    args = parser.parse_args(passed_arguments())
+    if args.command == "generate":
+        rebuild_all: bool = args.all
+        return generate(rebuild_all)
     return verify()
 
 

@@ -9,7 +9,7 @@ import ast
 from pathlib import Path
 
 GENERATOR = Path(__file__).parent.parent
-OPERATIONS = ("verifying",)
+OPERATIONS = ("generating", "verifying")
 
 
 def folders_used(*paths: Path) -> set[str]:

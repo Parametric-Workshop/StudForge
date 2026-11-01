@@ -1,0 +1,95 @@
+# Every real shape the block family makes, by Rebrickable part number (ADR 0002).
+#
+# Width and Length are in studs, Width the shorter side; Height is in plates, so
+# a brick is 3. Each row is one generated file, named by its part number. Ribs
+# can be switched off with Ribs = false. The comment is the shape's name in the
+# Rebrickable Census.
+#
+# Every row here is marked in coverage/coverage.csv with the family "block", and
+# every such row there is here (freecad_generator/tests/test_block_shapes.py).
+
+# Plates: one plate tall.
+3024 = { Width = 1, Length = 1, Height = 1 }         # Plate 1 x 1
+3023 = { Width = 1, Length = 2, Height = 1 }         # Plate 1 x 2
+3623 = { Width = 1, Length = 3, Height = 1 }         # Plate 1 x 3
+3710 = { Width = 1, Length = 4, Height = 1 }         # Plate 1 x 4
+78329 = { Width = 1, Length = 5, Height = 1 }        # Plate 1 x 5
+3666 = { Width = 1, Length = 6, Height = 1 }         # Plate 1 x 6
+3460 = { Width = 1, Length = 8, Height = 1 }         # Plate 1 x 8
+4477 = { Width = 1, Length = 10, Height = 1 }        # Plate 1 x 10
+60479 = { Width = 1, Length = 12, Height = 1 }       # Plate 1 x 12
+3022 = { Width = 2, Length = 2, Height = 1 }         # Plate 2 x 2
+3021 = { Width = 2, Length = 3, Height = 1 }         # Plate 2 x 3
+3020 = { Width = 2, Length = 4, Height = 1 }         # Plate 2 x 4
+3795 = { Width = 2, Length = 6, Height = 1 }         # Plate 2 x 6
+3034 = { Width = 2, Length = 8, Height = 1 }         # Plate 2 x 8
+3832 = { Width = 2, Length = 10, Height = 1 }        # Plate 2 x 10
+2445 = { Width = 2, Length = 12, Height = 1 }        # Plate 2 x 12
+91988 = { Width = 2, Length = 14, Height = 1 }       # Plate 2 x 14
+4282 = { Width = 2, Length = 16, Height = 1 }        # Plate 2 x 16
+11212 = { Width = 3, Length = 3, Height = 1 }        # Plate 3 x 3
+3031 = { Width = 4, Length = 4, Height = 1 }         # Plate 4 x 4
+3032 = { Width = 4, Length = 6, Height = 1 }         # Plate 4 x 6
+3035 = { Width = 4, Length = 8, Height = 1 }         # Plate 4 x 8
+3030 = { Width = 4, Length = 10, Height = 1 }        # Plate 4 x 10
+3030a = { Width = 4, Length = 10, Height = 1, Groove = true }  # Plate 4 x 10 with Groove
+3029 = { Width = 4, Length = 12, Height = 1 }        # Plate 4 x 12
+3958 = { Width = 6, Length = 6, Height = 1 }         # Plate 6 x 6
+3036 = { Width = 6, Length = 8, Height = 1 }         # Plate 6 x 8
+3033 = { Width = 6, Length = 10, Height = 1 }        # Plate 6 x 10
+3028 = { Width = 6, Length = 12, Height = 1 }        # Plate 6 x 12
+3456 = { Width = 6, Length = 14, Height = 1 }        # Plate 6 x 14
+3027 = { Width = 6, Length = 16, Height = 1 }        # Plate 6 x 16
+3026 = { Width = 6, Length = 24, Height = 1 }        # Plate 6 x 24
+41539 = { Width = 8, Length = 8, Height = 1 }        # Plate 8 x 8
+728 = { Width = 8, Length = 11, Height = 1 }         # Plate 8 x 11
+92438 = { Width = 8, Length = 16, Height = 1 }       # Plate 8 x 16
+91405 = { Width = 16, Length = 16, Height = 1 }      # Plate 16 x 16
+
+# Bricks: three plates tall.
+3005 = { Width = 1, Length = 1, Height = 3 }         # Brick 1 x 1
+3004 = { Width = 1, Length = 2, Height = 3 }         # Brick 1 x 2
+3622 = { Width = 1, Length = 3, Height = 3 }         # Brick 1 x 3
+3010 = { Width = 1, Length = 4, Height = 3 }         # Brick 1 x 4
+3009 = { Width = 1, Length = 6, Height = 3 }         # Brick 1 x 6
+3008 = { Width = 1, Length = 8, Height = 3 }         # Brick 1 x 8
+6111 = { Width = 1, Length = 10, Height = 3 }        # Brick 1 x 10
+6112 = { Width = 1, Length = 12, Height = 3 }        # Brick 1 x 12
+2465 = { Width = 1, Length = 16, Height = 3 }        # Brick 1 x 16
+3003 = { Width = 2, Length = 2, Height = 3 }         # Brick 2 x 2
+3002 = { Width = 2, Length = 3, Height = 3 }         # Brick 2 x 3
+3001 = { Width = 2, Length = 4, Height = 3 }         # Brick 2 x 4
+2456 = { Width = 2, Length = 6, Height = 3 }         # Brick 2 x 6
+3007 = { Width = 2, Length = 8, Height = 3 }         # Brick 2 x 8
+3006 = { Width = 2, Length = 10, Height = 3 }        # Brick 2 x 10
+
+# Taller bricks: a brick is three plates, so a 1 x 1 x 3 brick is nine.
+14716 = { Width = 1, Length = 1, Height = 9 }        # Brick 1 x 1 x 3
+49311 = { Width = 1, Length = 4, Height = 9 }        # Brick 1 x 4 x 3
+39268 = { Width = 1, Length = 5, Height = 6 }        # Brick 1 x 5 x 2
+3754 = { Width = 1, Length = 6, Height = 15 }        # Brick 1 x 6 x 5
+30145 = { Width = 2, Length = 2, Height = 9 }        # Brick 2 x 2 x 3
+30144 = { Width = 2, Length = 4, Height = 9 }        # Brick 2 x 4 x 3
+6213 = { Width = 2, Length = 6, Height = 9 }         # Brick 2 x 6 x 3
+
+# Tiles: one plate tall, no studs, the groove round the bottom edge.
+3070b = { Width = 1, Length = 1, Height = 1, Studs = false, Groove = true }  # Tile 1 x 1 with Groove
+3069b = { Width = 1, Length = 2, Height = 1, Studs = false, Groove = true }  # Tile 1 x 2 with Groove
+63864 = { Width = 1, Length = 3, Height = 1, Studs = false, Groove = true }  # Tile 1 x 3
+2431 = { Width = 1, Length = 4, Height = 1, Studs = false, Groove = true }   # Tile 1 x 4 with Groove
+6636 = { Width = 1, Length = 6, Height = 1, Studs = false, Groove = true }   # Tile 1 x 6 with Groove
+4162 = { Width = 1, Length = 8, Height = 1, Studs = false, Groove = true }   # Tile 1 x 8 with Groove
+3068b = { Width = 2, Length = 2, Height = 1, Studs = false, Groove = true }  # Tile 2 x 2 with Groove
+26603 = { Width = 2, Length = 3, Height = 1, Studs = false, Groove = true }  # Tile 2 x 3
+87079 = { Width = 2, Length = 4, Height = 1, Studs = false, Groove = true }  # Tile 2 x 4 with Groove
+69729 = { Width = 2, Length = 6, Height = 1, Studs = false, Groove = true }  # Tile 2 x 6
+1751 = { Width = 4, Length = 4, Height = 1, Studs = false, Groove = true }   # Tile 4 x 4
+8165 = { Width = 4, Length = 8, Height = 1, Studs = false, Groove = true }   # Tile 4 x 8
+10202 = { Width = 6, Length = 6, Height = 1, Studs = false, Groove = true }  # Tile 6 x 6 with Bottom Tubes
+6320 = { Width = 6, Length = 8, Height = 1, Studs = false, Groove = true }   # Tile 6 x 8
+90498 = { Width = 8, Length = 16, Height = 1, Studs = false, Groove = true } # Tile 8 x 16 with Bottom Tubes
+
+# Tiles without the groove: the older molds.
+3070a = { Width = 1, Length = 1, Height = 1, Studs = false }                 # Tile 1 x 1 without Groove
+3069a = { Width = 1, Length = 2, Height = 1, Studs = false }                 # Tile 1 x 2 without Groove
+3068a = { Width = 2, Length = 2, Height = 1, Studs = false }                 # Tile 2 x 2 without Groove

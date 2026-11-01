@@ -6,6 +6,8 @@ window, on inside_freecad.py, handing on the command with FreeCAD's --pass.
 
 Run it from the repo folder:
 
+    python3 -m freecad_generator generate          (only the shapes that changed)
+    python3 -m freecad_generator generate --all    (every shape again)
     python3 -m freecad_generator verify
     python3 -m freecad_generator verify --freecad PATH   (another FreeCAD)
 
@@ -23,7 +25,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
-COMMANDS = ("verify",)
+COMMANDS = ("generate", "verify")
 FLATPAK = "org.freecad.FreeCAD"
 # Where FreeCAD's installers put FreeCADCmd, newest version last when sorted.
 INSTALLS = (
