@@ -1,0 +1,22 @@
+# Every print offset StudForge has, in fit groups, in millimeters.
+#
+# A print offset is a deliberate, feature-specific adjustment to a nominal
+# dimension so the printed feature fits as intended (see GLOSSARY.md). Each is
+# named after the nominal value it adjusts (nominal.toml) plus "Offset", and is
+# added to it: StudDiameter + StudDiameterOffset.
+#
+# Filament profiles (profiles/*.toml) give values for these; anything a profile
+# leaves out is 0. The generator and the Orca plugin both read this file, so a
+# new offset is added here once.
+#
+# Each fit group has a title, and each offset says what it moves and which way
+# loosens the fit: "larger" or "smaller".
+
+[stud_and_tube]
+title = "Studs and tubes"
+StudDiameterOffset = { looser = "smaller", moves = "every stud's diameter" }
+CavityWidthOffset = { looser = "larger", moves = "the walls' inside faces, which grip the studs below" }
+TubeOuterDiameterOffset = { looser = "smaller", moves = "the underside tubes' outsides, which grip the studs around them" }
+TubeInnerDiameterOffset = { looser = "larger", moves = "the underside tubes' bores, which take a stud half a pitch over" }
+PinDiameterOffset = { looser = "smaller", moves = "the underside pins of parts 1 stud wide" }
+SideClearanceOffset = { looser = "larger", moves = "the outside faces: the gap to neighboring parts" }

@@ -53,18 +53,19 @@ max-branches = 12
 max-statements = 50
 
 [tool.ruff.lint.isort]
-# The census package; sort its imports as our own code.
-known-first-party = ["census"]
+# Our two packages; sort their imports as our own code.
+known-first-party = ["census", "freecad_generator"]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests compare against expected numbers, which read best written inline.
 "census/tests/**" = ["PLR2004"]
+"freecad_generator/tests/**" = ["PLR2004"]
 
 # --- Tests ------------------------------------------------------------------
 
 [tool.pytest.ini_options]
-testpaths = ["census/tests"]
-# The repo folder, so tests can import the census package.
+testpaths = ["census/tests", "freecad_generator/tests"]
+# The repo folder, so tests can import the census and freecad_generator packages.
 pythonpath = ["."]
 
 # --- Type checking ----------------------------------------------------------

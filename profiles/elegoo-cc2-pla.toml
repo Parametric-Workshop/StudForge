@@ -1,0 +1,12 @@
+# A filament profile: the print offsets that fit for one printer and filament.
+# Names and what they move: freecad_generator/print_offsets.toml. Anything left
+# out is 0.
+
+name = "Elegoo CC2, PLA"
+
+# Tuned by test prints on an Elegoo Centauri Carbon 2 (2026-10-28), against these
+# nominal sizes and this grip band.
+StudDiameterOffset = 0.35
+CavityWidthOffset = -0.15
+TubeOuterDiameterOffset = 0.1
+TubeInnerDiameterOffset = 0.15

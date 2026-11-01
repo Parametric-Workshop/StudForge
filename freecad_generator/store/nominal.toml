@@ -1,0 +1,41 @@
+# Nominal dimensions of the block family: bricks, plates and tiles, in millimeters.
+#
+# A nominal dimension is a feature's ideal size, before any print offset (see
+# GLOSSARY.md). Each name is the property the generator writes into a file's
+# Params, so a value can be searched for by the same name here and in FreeCAD.
+# Section headings only group the values; the names are what count.
+#
+# Fit sizes follow the stud-and-tube coupling: every gripping surface is set by the
+# size of the gap or feature a stud meets (cavity width, tube diameters, pin
+# diameter), never by a wall thickness. Fit tuning starts from MachineBlocks
+# (https://github.com/pks5/machineblocks), used as a reference for values only.
+
+[grid]
+Pitch = 8.0  # distance between neighboring studs
+SideClearance = 0.1  # gap per side between neighbors, so a 1 x 1 is 7.8
+PlateHeight = 3.2  # one plate, without studs; a brick is three
+
+[studs]
+StudDiameter = 4.8
+StudHeight = 1.7  # the project brief's value; LDraw and MachineBlocks use 1.6
+StudChamfer = 0.2  # 45 degrees off the top edge, a lead-in for pressing on
+
+[underside]
+# The cavity's width inside the walls, on a part 1 stud across; each further stud
+# adds a pitch. At a stud's width, the walls just touch the studs of the part
+# below. The wall is what's left between this and SideClearance: 1.5 at nominal.
+CavityWidth = 4.8
+# The ceiling over the cavity. A plate's cavity must clear the 1.7 stud below it,
+# so plates and tiles stay at 1.0; from brick height up the ceiling is 1.6, as
+# LDraw draws it and MachineBlocks makes it, stiffer under the studs.
+PlateCeiling = 1.0
+BrickCeiling = 1.6
+# Underside tubes, on parts at least 2 x 2. Each sits in a square of four studs of
+# the part below and touches all four: 8 x sqrt(2) - 4.8. Its bore takes one stud
+# when a part sits half a pitch over (LEGO's patent US 3,005,282, claim 2).
+TubeOuterDiameter = 6.51
+TubeInnerDiameter = 4.8
+# Underside pins, on parts 1 stud wide: between two studs of the part below and
+# touching both, the pitch less a stud.
+PinDiameter = 3.2
+
