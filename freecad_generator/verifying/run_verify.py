@@ -8,13 +8,14 @@ another, recomputing once each time. Every result must have no feature errors,
 be one valid solid, match block_rules.py's volume and box, and be the same solid
 as a fresh build at that size.
 
-The edits run at nominal size, then with the profiles/elegoo-cc2-pla.toml print
-offsets. The last is a 2 x 4 brick with those
+The edits run at nominal size, then with the grip band off, then with the
+profiles/elegoo-cc2-pla.toml print offsets. The last is a 2 x 4 brick with those
 offsets, saved to build/freecad/edit_check-<FreeCAD version>/block.FCStd.
 
 It returns 1 if any edit fails. Runs in FreeCAD.
 """
 
+from dataclasses import replace
 from pathlib import Path
 
 import FreeCAD as App
@@ -35,7 +36,9 @@ from freecad_generator.families.block_rules import (
     body_height,
     ceiling,
     has_pins,
+    has_ribs,
     has_tubes,
+    ribbed_tubes,
 )
 from freecad_generator.store.nominal import Nominal, load
 from freecad_generator.store.part_files import save
@@ -62,16 +65,31 @@ EDITS = [
     Size(Width=2, Length=2, Height=3),  # brick 2 x 2 (3003): tubes come back
     Size(Width=3, Length=3, Height=1),  # plate 3 x 3 (11212)
     Size(Width=2, Length=4, Height=15),  # brick 2 x 4, five bricks tall
+    Size(Width=2, Length=6, Height=3),  # brick 2 x 6 (2456): three ribbed tubes
+    Size(Width=2, Length=8, Height=3),  # brick 2 x 8 (3007): ribs as on LDraw's
+    Size(Width=2, Length=5, Height=3),  # brick 2 x 5: ribs on both middle tubes
     Size(Width=2, Length=3, Height=3),  # brick 2 x 3 (3002)
+    Size(Width=2, Length=4, Height=3, Ribs=False),  # brick 2 x 4, ribs off
     Size(Width=4, Length=6, Height=3),  # brick 4 x 6 (2356)
     Size(Width=1, Length=1, Height=1),  # plate 1 x 1 (3024)
+    Size(Width=1, Length=1, Height=1, Studs=False, Groove=True),  # tile 1 x 1 (3070b)
+    Size(Width=2, Length=3, Height=1, Studs=False, Groove=True),  # tile 2 x 3 (26603)
+    Size(Width=2, Length=2, Height=1, Studs=False, Groove=True),  # tile 2 x 2 (3068b)
+    Size(Width=2, Length=4, Height=3, Studs=False),  # a brick without studs
+    Size(Width=4, Length=10, Height=1, Groove=True),  # plate 4 x 10 with groove (3030a)
     Size(Width=2, Length=4, Height=3),  # back to the brick 2 x 4
+]
+# Then with GripRelief 0, which turns the grip band off, as the LDraw comparison
+# will: plain walls, tubes and pins.
+WITHOUT_GRIP_BAND = [
+    Size(Width=2, Length=4, Height=3),  # tubes
+    Size(Width=1, Length=4, Height=1),  # pins
 ]
 # Then with a filament profile's print offsets, ending on the brick 2 x 4.
 WITH_PROFILE = [
     Size(Width=1, Length=4, Height=1),  # pins
     Size(Width=1, Length=1, Height=3),  # neither
-    Size(Width=2, Length=4, Height=3),  # tubes
+    Size(Width=2, Length=4, Height=3),  # tubes and ribs
 ]
 PROFILE = PROFILES / "elegoo-cc2-pla.toml"
 
@@ -94,14 +112,26 @@ def rules_differ(master: Master, nominal: Nominal, size: Size) -> list[str]:
     expected: dict[str, float] = {
         "HasTubes": has_tubes(size),
         "HasPins": has_pins(size),
+        "HasRibs": has_ribs(size),
+        "HasGripBand": nominal.GripRelief > 0,
         "BodyHeight": body_height(nominal, size),
         "Ceiling": ceiling(nominal, size),
     }
-    return [
+    found = [
         f"rule {name} is {rule(master, name)}, expected {value}"
         for name, value in expected.items()
         if abs(rule(master, name) - value) > BOX_TOLERANCE
     ]
+    ribbed: list[int] = []
+    for side in ("Right", "Left"):
+        if rule(master, "HasRibs" if side == "Right" else "HasLeftRibs"):
+            first = int(rule(master, f"Ribs{side}First"))
+            count = int(rule(master, f"Ribs{side}Count"))
+            ribbed += range(first, first + 2 * count, 2)
+    should = ribbed_tubes(size) if has_ribs(size) else []
+    if sorted(ribbed) != should:
+        found.append(f"ribbed tubes {sorted(ribbed)}, expected {should}")
+    return found
 
 
 def differs_from_fresh(
@@ -123,6 +153,7 @@ def differs_from_fresh(
 def run(master: Master, nominal: Nominal, profile: Profile, sizes: list[Size]) -> int:
     """Make each edit in turn and print how it went; return how many failed."""
     failures = 0
+    band = "" if nominal.GripRelief > 0 else ", no grip band"
     for size in sizes:
         edit(master, size, nominal, profile)
         found = problems(master, applied(nominal, profile), size)
@@ -130,13 +161,19 @@ def run(master: Master, nominal: Nominal, profile: Profile, sizes: list[Size]) -
         found += differs_from_fresh(master, nominal, profile, size)
         failures += bool(found)
         status = "FAIL" if found else "ok  "
-        print(f"{status} {label(size, profile):44} {'; '.join(found)}", flush=True)
+        print(
+            f"{status} {label(size, band, profile):52} {'; '.join(found)}", flush=True
+        )
     return failures
 
 
-def label(size: Size, profile: Profile) -> str:
-    """An edit as it's reported, such as "2 x 4 x 3 plates (nominal)"."""
-    return f"{size.Width} x {size.Length} x {size.Height} plates ({profile.name})"
+def label(size: Size, band: str, profile: Profile) -> str:
+    """An edit as it's reported, such as "2 x 4 x 3 plates, no ribs (nominal)"."""
+    features = "" if size.Ribs else ", no ribs"
+    features += "" if size.Studs else ", no studs"
+    features += ", groove" if size.Groove else ""
+    sizes = f"{size.Width} x {size.Length} x {size.Height} plates"
+    return f"{sizes}{band}{features} ({profile.name})"
 
 
 def verify() -> int:
@@ -148,8 +185,10 @@ def verify() -> int:
     App.closeDocument(built.doc.Name)
     master = open_master(OUTPUT)  # every edit is made to the file as reopened
     failures = run(master, nominal, plain, EDITS)
+    no_band = replace(nominal, GripRelief=0.0)
+    failures += run(master, no_band, plain, WITHOUT_GRIP_BAND)
     failures += run(master, nominal, load_profile(PROFILE), WITH_PROFILE)
-    total = len(EDITS) + len(WITH_PROFILE)
+    total = len(EDITS) + len(WITHOUT_GRIP_BAND) + len(WITH_PROFILE)
     save(master.doc, OUTPUT)
     print(f"{total - failures} of {total} edits ok; saved {OUTPUT}", flush=True)
     return 1 if failures else 0

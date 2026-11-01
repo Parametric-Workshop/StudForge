@@ -20,3 +20,4 @@ TubeOuterDiameterOffset = { looser = "smaller", moves = "the underside tubes' ou
 TubeInnerDiameterOffset = { looser = "larger", moves = "the underside tubes' bores, which take a stud half a pitch over" }
 PinDiameterOffset = { looser = "smaller", moves = "the underside pins of parts 1 stud wide" }
 SideClearanceOffset = { looser = "larger", moves = "the outside faces: the gap to neighboring parts" }
+GripReliefOffset = { looser = "larger", moves = "how far walls, tubes and pins stand off the studs outside the grip band" }

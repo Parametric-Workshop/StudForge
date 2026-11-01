@@ -45,14 +45,24 @@ def driven(
     sketch.setExpression(f"Constraints.{name}", expression)
 
 
-def rectangle(sketch: App.SketchObject, name: str, length: str, width: str) -> None:
+def rectangle(
+    sketch: App.SketchObject,
+    name: str,
+    length: str,
+    width: str,
+    corner: str | None = None,
+) -> None:
     """A rectangle with its lower left corner on the sketch's origin.
 
-    Its sides are named constraints, such as OutsideLength and OutsideWidth.
+    Its sides are named constraints, such as OutsideLength and OutsideWidth. With
+    `corner`, the corner sits that far right of and above the origin instead, as an
+    inner rectangle does inside an outer one.
     """
     first = sketch.GeometryCount
-    # A starting shape; the constraints size it.
-    corners = [App.Vector(x, y) for x, y in ((0, 0), (8, 0), (8, 3), (0, 3))]
+    start = 0 if corner is None else 1  # a starting shape; the constraints size it
+    corners = [
+        App.Vector(start + x, start + y) for x, y in ((0, 0), (8, 0), (8, 3), (0, 3))
+    ]
     for i in range(4):
         sketch.addGeometry(Part.LineSegment(corners[i], corners[(i + 1) % 4]))
     for i in range(4):  # each side's end on the next side's start
@@ -61,7 +71,16 @@ def rectangle(sketch: App.SketchObject, name: str, length: str, width: str) -> N
         )
     for i, direction in enumerate(["Horizontal", "Vertical"] * 2):
         sketch.addConstraint(Sketcher.Constraint(direction, first + i))
-    sketch.addConstraint(Sketcher.Constraint("Coincident", first, 1, -1, 1))
+    if corner is None:
+        sketch.addConstraint(Sketcher.Constraint("Coincident", first, 1, -1, 1))
+    else:
+        for axis in ("X", "Y"):
+            driven(
+                sketch,
+                Sketcher.Constraint(f"Distance{axis}", -1, 1, first, 1, 1),
+                f"{name}Corner{axis}",
+                corner,
+            )
     driven(
         sketch,
         Sketcher.Constraint("DistanceX", first, 1, first, 2, 8),
@@ -127,6 +146,24 @@ def grid_pattern(
         pattern.setExpression(f"Length{direction}", f"({count} - 1) * {P}.Pitch")
     if has is not None:
         pattern.setExpression("Suppressed", f"not({has})")
+
+
+def row_pattern(
+    body: App.Body,
+    name: str,
+    features: list[App.DocumentObject],
+    count: str,
+    has: str,
+) -> None:
+    """Repeat features two pitches apart along the length, as many as `count`."""
+    pattern = body.newObject("PartDesign::LinearPattern", name)
+    pattern.Originals = features
+    body.Tip = pattern  # a new pattern doesn't become the tip by itself
+    pattern.Direction = (plane(body, "X_Axis"), [""])
+    pattern.Mode = "Extent"
+    pattern.setExpression("Occurrences", f"max(1; {count})")
+    pattern.setExpression("Length", f"(max(1; {count}) - 1) * 2 * {P}.Pitch")
+    pattern.setExpression("Suppressed", f"not({has})")
 
 
 def show_result(doc: App.Document, body: App.Body) -> None:

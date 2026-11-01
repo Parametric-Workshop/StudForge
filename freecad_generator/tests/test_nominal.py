@@ -47,6 +47,11 @@ def test_a_plate_cavity_clears_the_stud_below() -> None:
     assert N.PlateHeight - N.PlateCeiling > N.StudHeight
 
 
+def test_the_tube_mouth_wall_is_thinner_than_the_tube_wall() -> None:
+    """Below the grip band, the tube's wall is one line, thinner than its full wall."""
+    assert N.TubeMouthWall < (N.TubeOuterDiameter - N.TubeInnerDiameter) / 2
+
+
 def test_a_name_in_two_sections_stops_the_build(tmp_path: Path) -> None:
     """A later family's section can't quietly replace a value another uses."""
     text = NOMINAL_TOML.read_text() + "\n[technic]\nPinDiameter = 4.8\n"

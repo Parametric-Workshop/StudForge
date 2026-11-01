@@ -142,6 +142,10 @@ _Avoid_: Tolerance, clearance (unless it is literally a gap), compensation
 A named set of print offsets that tune the same kind of fit, such as studs and tubes, shared by every family that has those features.
 _Avoid_: Category, offset category
 
+**Grip band**:
+The narrow band just above a shape's bottom face where its walls, tubes and pins reach their gripping size, clear of the first printed layers; elsewhere they stand slightly off the studs below.
+_Avoid_: Clamp, clutch band
+
 **Filament profile**:
 A named set of print offsets tuned for one filament.
 _Avoid_: Tolerance profile, printer profile

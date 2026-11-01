@@ -27,6 +27,14 @@ class Nominal:
     TubeOuterDiameter: float
     TubeInnerDiameter: float
     PinDiameter: float
+    GripBandBottom: float
+    GripBandTop: float
+    GripRelief: float
+    TubeMouthWall: float
+    RibThickness: float
+    RibDepth: float
+    GrooveDepth: float
+    GrooveHeight: float
 
 
 def load(path: Path = NOMINAL_TOML) -> Nominal:
