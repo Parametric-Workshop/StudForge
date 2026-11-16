@@ -11,6 +11,7 @@ operation's: 1 if anything failed.
 """
 
 import argparse
+import shlex
 import sys
 import traceback
 from collections.abc import Callable
@@ -41,11 +42,12 @@ def passed_arguments() -> list[str]:
     """The command and its options: what follows --pass on FreeCAD's command line.
 
     FreeCAD reads its command line itself and refuses options it doesn't know;
-    whatever follows --pass it hands on untouched (cli.py puts it there).
+    the one argument that follows --pass it hands on untouched. cli.py puts the
+    command and its options there as one argument, such as "generate --all".
     """
     if "--pass" not in sys.argv:
         return []
-    return sys.argv[sys.argv.index("--pass") + 1 :]
+    return shlex.split(sys.argv[sys.argv.index("--pass") + 1])
 
 
 def exit_with(main: Callable[[], int]) -> None:

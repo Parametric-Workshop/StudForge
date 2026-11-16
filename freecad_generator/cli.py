@@ -19,6 +19,7 @@ The run's exit code is the command's.
 
 import argparse
 import glob
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -75,6 +76,15 @@ def main() -> int:
     parser.add_argument("--freecad", help="FreeCADCmd, or an AppImage, to run it with")
     args, options = parser.parse_known_args()
     command = [*freecad_command(args.freecad), str(HERE / "inside_freecad.py")]
-    # FreeCAD hands on whatever follows --pass to the file it runs.
-    command += ["--pass", args.command, *options]
+    command += passed_on(args.command, options)
     return subprocess.run(command, cwd=REPO, check=False).returncode
+
+
+def passed_on(command: str, options: list[str]) -> list[str]:
+    """What tells FreeCAD to hand a command and its options to the file it runs.
+
+    FreeCAD hands on the one argument that follows --pass and reads any after it
+    as its own, so the command and its options travel as one argument:
+    ["--pass", "generate --all"]. inside_freecad.py splits it again.
+    """
+    return ["--pass", shlex.join([command, *options])]
