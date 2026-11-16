@@ -9,7 +9,8 @@ checks that), so a change of database is a change to this file alone:
   - write_table() and add_index() copy a table in from Rebrickable; read_table()
     yields its rows and row_count() counts them.
   - read() and read_shape_sets() load the condensed tables as the records below,
-    which census/condense.py builds and saves with write().
+    which census/condense.py builds and saves with write(). read_previous() loads
+    the condensed census a new one is about to replace, to compare the two.
   - write_coverage() saves the statuses census/coverage.py works out.
 
 Every change is all-or-nothing: begin() starts one, and until it is committed the
@@ -193,6 +194,8 @@ TABLES = [
     "shape_set",
 ]
 SCHEMA = SHAPE_TABLE + DECORATED_SHAPE_TABLE + ASSEMBLY_TABLE + SHAPE_SET_TABLE
+# What an import renames the condensed tables to, until the census is condensed again.
+PREVIOUS = "previous_"
 
 
 @dataclass
@@ -243,16 +246,27 @@ def open_census(path: Path = DB_PATH) -> Census:
 def start_snapshot(db: Census, copied_tables: Iterable[str]) -> None:
     """Begin replacing a snapshot: remove what came from the old one, keep the rest.
 
-    Drops the tables copied from Rebrickable (copied_tables), and everything worked
-    out from them: the condensed tables, the coverage table and the meta table. Any
-    other table in the census is left as it is.
+    Drops the tables copied from Rebrickable (copied_tables), the coverage table
+    and the meta table. The condensed tables are set aside under a "previous_"
+    name, so the census reads as not condensed yet, and read_previous() can still
+    say what the last condensed census held. Any other table is left as it is.
 
     Nothing changes for other readers until commit(): if the import fails before
     then, the census still holds the previous snapshot, whole.
     """
     begin(db)
-    for table in (*copied_tables, *TABLES, "coverage", "meta"):
+    for table in (*copied_tables, "coverage", "meta"):
         db.execute(f'DROP TABLE IF EXISTS "{table}"')
+    if has_table(db, TABLES[0]):
+        for table in TABLES:
+            db.execute(f"DROP TABLE IF EXISTS {PREVIOUS}{table}")
+            db.execute(f"ALTER TABLE {table} RENAME TO {PREVIOUS}{table}")
+
+
+def has_table(db: Census, table: str) -> bool:
+    """Return whether the census holds a table of this name."""
+    found = db.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (table,))
+    return found.fetchone() is not None
 
 
 def begin(db: Census) -> None:
@@ -331,10 +345,13 @@ def write(db: Census, census: CondensedCensus, shape_sets: list[ShapeSet]) -> No
 
     Nothing is saved until a commit, so the caller can check the result first,
     and a failure or a rollback leaves the previous condensed census whole.
+    Also drops the tables an import set aside: once there is a new condensed
+    census, the previous one has nothing left to be compared with.
     """
     begin(db)
     for table in TABLES:
         db.execute(f"DROP TABLE IF EXISTS {table}")
+        db.execute(f"DROP TABLE IF EXISTS {PREVIOUS}{table}")
     # One statement at a time: sqlite3's executescript() would save what has been
     # done so far, and the change could no longer be undone as a whole.
     for statement in statements(SCHEMA):
@@ -399,16 +416,20 @@ def rows(db: Census, sql: str) -> Iterator[dict[str, Any]]:
         yield dict(zip(columns, row, strict=True))
 
 
-def read(db: Census) -> CondensedCensus:
+def read(db: Census, prefix: str = "") -> CondensedCensus:
     """Load the condensed tables, with each record linked to the ones it holds.
 
     Each shape gets its decorated shapes and the assemblies it's in; each
-    assembly gets its members and its decorated shapes.
+    assembly gets its members and its decorated shapes. prefix is PREVIOUS to
+    load the tables an import set aside.
     """
-    shapes = [Shape(**r) for r in rows(db, "SELECT * FROM condensed_shape")]
-    decorated = [DecoratedShape(**r) for r in rows(db, "SELECT * FROM decorated_shape")]
+    shapes = [Shape(**r) for r in rows(db, f"SELECT * FROM {prefix}condensed_shape")]
+    decorated = [
+        DecoratedShape(**r) for r in rows(db, f"SELECT * FROM {prefix}decorated_shape")
+    ]
     assemblies = [
-        Assembly(**r) for r in rows(db, "SELECT * FROM assembly ORDER BY part_num")
+        Assembly(**r)
+        for r in rows(db, f"SELECT * FROM {prefix}assembly ORDER BY part_num")
     ]
     shape_by_num = {s.part_num: s for s in shapes}
     assembly_by_num = {a.part_num: a for a in assemblies}
@@ -417,7 +438,8 @@ def read(db: Census) -> CondensedCensus:
         holder = shape_by_num.get(d.folds_into) or assembly_by_num[d.folds_into]
         holder.decorated.append(d)
     members = db.execute(
-        "SELECT assembly, part_num FROM assembly_member ORDER BY assembly, part_num"
+        f"SELECT assembly, part_num FROM {prefix}assembly_member "
+        "ORDER BY assembly, part_num"
     )
     for assembly_num, member in members:
         assembly = assembly_by_num[assembly_num]
@@ -425,6 +447,19 @@ def read(db: Census) -> CondensedCensus:
         if member in shape_by_num:  # a few members are assemblies themselves
             shape_by_num[member].assemblies.append(assembly)
     return CondensedCensus(shapes, decorated, assemblies)
+
+
+def read_previous(db: Census) -> CondensedCensus | None:
+    """Load the condensed census that a new one is about to replace, if there is one.
+
+    That is the condensed tables as they stand, or, just after an import, the
+    ones it set aside. None in a census that was never condensed.
+    """
+    if has_table(db, TABLES[0]):
+        return read(db)
+    if has_table(db, PREVIOUS + TABLES[0]):
+        return read(db, PREVIOUS)
+    return None
 
 
 def read_shape_sets(db: Census) -> list[ShapeSet]:

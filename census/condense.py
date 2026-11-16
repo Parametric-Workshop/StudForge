@@ -23,7 +23,9 @@ Usage:
 import sys
 from collections import Counter, defaultdict
 
+import changes
 import condensed_census
+import coverage
 from candidates import brick_system, exclusion
 from census import REPO, bring_census_up_to_date, now_text, sha256
 from condensed_census import (
@@ -50,6 +52,8 @@ from folding import (
 from usage import PerSetUsage, count_usage
 
 CENSUS_DIR = REPO / "census"
+# Each condense adds what it changed to this log (local only, like the census).
+CHANGES_PATH = REPO / "build" / "census_changes.log"
 
 # The files whose rules shape the condensed census. Their checksums are saved
 # with it, so census_viewer.py can tell when it needs condensing again.
@@ -308,17 +312,28 @@ def changed_rule_files(meta: dict[str, str]) -> list[str]:
 
 
 def condense_census() -> None:
-    """Build the condensed census and print what it holds."""
+    """Build the condensed census, print what it holds and log what changed."""
     db = open_census()
+    previous = condensed_census.read_previous(db)
     shapes, candidates, assemblies, official_sets = condense(db)
+    sections = None
+    if previous is not None:
+        tracked = set(coverage.read_file(coverage.COVERAGE_PATH))
+        sections = changes.compare(previous, condensed_census.read(db), tracked)
     db.close()
-    snapshot_date = read_meta()["snapshot_date"]
+    meta = read_meta()
     print(
-        f"Condensed census {snapshot_date}: {shapes:,} shapes ({candidates:,} "
+        f"Condensed census {meta['snapshot_date']}: {shapes:,} shapes ({candidates:,} "
         f"candidates) and {assemblies:,} assemblies, from {official_sets:,} "
         "official sets"
     )
     print(f"  database: {DB_PATH.relative_to(REPO)}")
+    heading = f"Condensed {meta['condensed_at']}, snapshot {meta['snapshot_date']}"
+    with open(CHANGES_PATH, "a", encoding="utf-8") as log:
+        log.write("\n".join(changes.report(heading, sections)) + "\n")
+    if sections is not None:
+        print(f"  changes: {changes.summary(sections)}")
+        print(f"  log: {CHANGES_PATH.relative_to(REPO)}")
 
 
 def main() -> None:

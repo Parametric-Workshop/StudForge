@@ -55,7 +55,9 @@ max-statements = 50
 [tool.ruff.lint.isort]
 # The census scripts, imported by name in tests; sort them as our own code.
 known-first-party = [
+    "archive",
     "candidates",
+    "changes",
     "census",
     "census_viewer",
     "condensed_census",

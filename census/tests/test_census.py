@@ -9,6 +9,7 @@ import pytest
 
 import census
 import condense
+import condensed_census
 
 SNAPSHOT = Path(__file__).parent / "fixtures" / "sample_snapshot"
 
@@ -49,23 +50,31 @@ def test_a_new_snapshot_replaces_the_old_ones_tables(tmp_path: Path) -> None:
     db.close()
 
 
-def test_a_new_snapshot_removes_what_was_worked_out_from_the_old_one(
-    tmp_path: Path,
-) -> None:
-    """The condensed tables and their details go, so the census is condensed again."""
+def test_a_new_snapshot_sets_the_condensed_census_aside(tmp_path: Path) -> None:
+    """The census reads as not condensed, but the last condensed census is kept.
+
+    Condensing again can then say what the new snapshot changed, and afterwards
+    the set-aside tables are gone.
+    """
     db_path = tmp_path / "census.sqlite"
     census.create_census(SNAPSHOT, db_path, "2026-10-23")
     db = sqlite3.connect(db_path)
     condense.condense(db)
+    shapes = len(condensed_census.read(db).shapes)
     db.close()
 
     census.create_census(SNAPSHOT, db_path, "2026-10-24")
     db = sqlite3.connect(db_path)
-    tables = {name for (name,) in db.execute("SELECT name FROM sqlite_master")}
     meta = dict(db.execute("SELECT key, value FROM meta"))
-    db.close()
-    assert "condensed_shape" not in tables
     assert "condensed_at" not in meta
+    assert not condensed_census.has_table(db, "condensed_shape")
+    previous = condensed_census.read_previous(db)
+    assert previous is not None
+    assert len(previous.shapes) == shapes
+
+    condense.condense(db)
+    assert not condensed_census.has_table(db, "previous_condensed_shape")
+    db.close()
 
 
 def test_a_new_snapshot_keeps_tables_that_are_not_from_a_snapshot(
