@@ -14,13 +14,10 @@ The rules (see GLOSSARY.md and docs/adr/0001-assemblies-are-not-shapes.md):
     "shape modeled" once the shape or assembly it folds into is modeled.
 """
 
-import csv
 from pathlib import Path
 
 from census.store.census_db import Assembly, CondensedCensus, DecoratedShape, Shape
-from census.store.files import REPO
-
-COVERAGE_PATH = REPO / "coverage" / "coverage.csv"
+from census.store.coverage_file import COVERAGE_PATH, read_coverage_file
 
 # The statuses coverage.csv can record, from least to most advanced.
 STATUSES = ["planned", "modeled", "validated", "print-tested"]
@@ -43,8 +40,7 @@ Statuses = dict[str, str]
 
 def read_file(path: Path) -> Statuses:
     """Return the status recorded for each part number in a coverage file."""
-    with open(path, newline="", encoding="utf-8") as f:
-        recorded = {r["part_num"]: r["status"] for r in csv.DictReader(f)}
+    recorded = read_coverage_file(path)
     unknown = {p: s for p, s in recorded.items() if s not in STATUSES}
     if unknown:
         raise SystemExit(f"Unknown status in {path.name}: {unknown}")

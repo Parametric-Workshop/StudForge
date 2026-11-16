@@ -74,5 +74,5 @@ jobs:
       - name: Thin old releases
         run: |
           gh release list --limit 200 --json tagName --jq '.[].tagName' \
-            | uv run python -m census.store.archive \
+            | uv run python -m census thin-releases \
             | while read -r tag; do gh release delete "$tag" --yes --cleanup-tag; done

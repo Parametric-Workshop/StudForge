@@ -22,7 +22,6 @@ import datetime
 import gzip
 import hashlib
 import shutil
-import sys
 import tarfile
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -234,13 +233,3 @@ def names_to_drop(names: Iterable[str], prefix: str) -> list[str]:
             continue
     keep = dates_to_keep(dated)
     return [name for day, name in sorted(dated.items()) if day not in keep]
-
-
-def main() -> None:
-    """Read release tags, one a line, and print the census ones to delete."""
-    for name in names_to_drop(sys.stdin.read().split(), RELEASE_PREFIX):
-        print(name)
-
-
-if __name__ == "__main__":
-    main()

@@ -15,6 +15,8 @@ DOWNLOAD_DIR = REPO / "downloads" / "rebrickable"
 ARCHIVE_DIR = REPO / "archive" / "census"
 # Each condense adds what it changed to this log (local only, like the census).
 CHANGES_PATH = REPO / "build" / "census_changes.log"
+# Where the viewer page is written unless a client names another place.
+VIEWER_PATH = REPO / "build" / "census_viewer.html"
 MB = 1_000_000  # bytes, for progress messages and reading files to hash
 
 

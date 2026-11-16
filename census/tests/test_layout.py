@@ -1,11 +1,13 @@
 """Check that census files only import what the layout allows.
 
-The layout, from census/__init__.py: the client calls the API, the API calls
-the operations and the store, and each operation calls only the store.
+The layout, from census/__init__.py: the client uses only the names that file
+offers, and each operation calls only itself and the store.
 """
 
 import ast
 from pathlib import Path
+
+import census
 
 CENSUS = Path(__file__).parent.parent
 OPERATIONS = ("importing", "condensing", "coverage")
@@ -35,9 +37,27 @@ def folders_used(folder: str) -> set[str]:
 
 
 def test_the_client_only_imports_the_api() -> None:
-    """Whatever the client needs, it asks the API for."""
-    imports = census_imports(CENSUS / "cli.py")
-    assert {name.split(".")[1] for name in imports if "." in name} == {"api"}
+    """Whatever the client needs, it gets from the names census/__init__.py offers."""
+    tree = ast.parse((CENSUS / "cli.py").read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules = [name.name for name in node.names]
+            assert not [m for m in modules if m.startswith("census.")], modules
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            if node.module.split(".")[0] == "census":
+                assert node.module == "census", node.module
+                assert {name.name for name in node.names} <= set(census.__all__)
+
+
+def test_the_api_file_only_lists_names() -> None:
+    """census/__init__.py holds imports and the list of names, and no code."""
+    tree = ast.parse((CENSUS / "__init__.py").read_text(encoding="utf-8"))
+    code = [
+        node
+        for node in tree.body[1:]  # after the docstring
+        if not isinstance(node, ast.ImportFrom | ast.Assign)
+    ]
+    assert not code
 
 
 def test_each_operation_only_imports_itself_and_the_store() -> None:

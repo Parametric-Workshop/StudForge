@@ -1,6 +1,6 @@
 """What changed between one condensed census and the next.
 
-The condense operation (census/api.py) compares the condensed census it is about to
+The condense operation (run_condense.py) compares the condensed census it is about to
 replace with the new one, and adds the result to build/census_changes.log. A change
 comes from a new Rebrickable snapshot, or from an edit to the folding, family or
 exclusion rules; either way, the log says what it did to the shapes StudForge models.
