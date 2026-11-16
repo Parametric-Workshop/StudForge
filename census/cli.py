@@ -25,13 +25,7 @@ import datetime
 from pathlib import Path
 
 from census import api
-from census.condensing.condense import changed_rule_files
-from census.importing.snapshot import SOURCE_FILES, manifest_snapshot
-from census.store.census_db import read_meta
-from census.store.files import DB_PATH, MANIFEST_PATH, REPO, sha256
-
-VIEWER_PATH = REPO / "build" / "census_viewer.html"
-
+from census.api import CensusState
 
 # --- The commands ---------------------------------------------------------------
 
@@ -47,7 +41,7 @@ def main() -> None:
         "import",
         help="build the census database from a Rebrickable snapshot",
         epilog="The source folder must contain:"
-        + "".join(f"\n   {f}" for f in SOURCE_FILES),
+        + "".join(f"\n   {f}" for f in api.SOURCE_FILES),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     importing.add_argument(
@@ -67,7 +61,7 @@ def main() -> None:
         "coverage", help="work out coverage, print the summary and write the viewer"
     )
     covering.add_argument(
-        "--out", type=Path, default=VIEWER_PATH, help="where to write the viewer"
+        "--out", type=Path, default=api.VIEWER_PATH, help="where to write the viewer"
     )
 
     args = parser.parse_args()
@@ -80,7 +74,7 @@ def main() -> None:
         api.condense()
     else:
         bring_census_up_to_date()
-        check_condensed(read_meta())
+        check_condensed(api.census_state())
         api.coverage(args.out)
 
 
@@ -97,38 +91,38 @@ def bring_census_up_to_date() -> None:
     The condense and coverage commands call this before they read the census,
     so either one works on a fresh clone.
     """
-    if not census_is_current(read_meta()):
+    if not census_is_current(api.census_state()):
         api.import_pinned_snapshot()
-    warn_if_old(read_meta())
+    warn_if_old(api.census_state())
 
 
-def census_is_current(meta: dict[str, str]) -> bool:
+def census_is_current(state: CensusState) -> bool:
     """Report whether the census was built from the snapshot in the manifest.
 
     The manifest is committed, so after pulling a new snapshot's manifest the
     local census no longer matches it.
     """
-    if not meta:
-        print(f"Census: {DB_PATH.relative_to(REPO)} not found; building it")
+    if not state.snapshot_date:
+        print(f"Census: {state.database} not found; building it")
         return False
-    snapshot = meta["snapshot_date"]
-    if meta.get("manifest sha256") != sha256(MANIFEST_PATH):
+    if not state.matches_manifest:
         print(
-            f"Census: built from the {snapshot} snapshot, but {MANIFEST_PATH.name} "
-            f"records the {manifest_snapshot()} snapshot; rebuilding"
+            f"Census: built from the {state.snapshot_date} snapshot, but "
+            f"{state.manifest} records the {state.pinned_snapshot} snapshot; "
+            "rebuilding"
         )
         return False
-    age = snapshot_age(meta)
+    age = snapshot_age(state)
     print(
-        f"Census: Rebrickable snapshot {snapshot} ({age} {days(age)} old), built "
-        f"{meta['built_at']}; matches {MANIFEST_PATH.name}, no rebuild needed"
+        f"Census: Rebrickable snapshot {state.snapshot_date} ({age} {days(age)} "
+        f"old), built {state.built_at}; matches {state.manifest}, no rebuild needed"
     )
     return True
 
 
-def snapshot_age(meta: dict[str, str]) -> int:
+def snapshot_age(state: CensusState) -> int:
     """Return how many days ago Rebrickable exported the census's snapshot."""
-    exported = datetime.date.fromisoformat(meta["snapshot_date"])
+    exported = datetime.date.fromisoformat(state.snapshot_date)
     return (datetime.date.today() - exported).days
 
 
@@ -137,9 +131,9 @@ def days(count: int) -> str:
     return "day" if count == 1 else "days"
 
 
-def warn_if_old(meta: dict[str, str]) -> None:
+def warn_if_old(state: CensusState) -> None:
     """Suggest downloading a newer snapshot once the census's is a month old."""
-    age = snapshot_age(meta)
+    age = snapshot_age(state)
     if age > OLD_SNAPSHOT_DAYS:
         print(
             f"Census: the snapshot is {age} days old; run "
@@ -147,23 +141,19 @@ def warn_if_old(meta: dict[str, str]) -> None:
         )
 
 
-def check_condensed(meta: dict[str, str]) -> dict[str, str]:
-    """Condense the census again if it never was, or a rule file changed.
-
-    Returns the census details (the meta table), read again after condensing.
-    """
-    changed = changed_rule_files(meta)
-    if "condensed_at" not in meta:
+def check_condensed(state: CensusState) -> None:
+    """Condense the census again if it never was, or a rule file changed."""
+    if not state.condensed_at:
         reason = "not condensed yet"
-    elif changed:
-        reason = f"changed since {meta['condensed_at']}: {', '.join(changed)}"
+    elif state.changed_rule_files:
+        changed = ", ".join(state.changed_rule_files)
+        reason = f"changed since {state.condensed_at}: {changed}"
     else:
         print(
-            f"Condensed census: condensed {meta['condensed_at']}; "
+            f"Condensed census: condensed {state.condensed_at}; "
             "rule files unchanged, no condensing needed\n"
         )
-        return meta
+        return
     print(f"Condensed census: {reason}; condensing again")
     api.condense()
     print()
-    return read_meta()

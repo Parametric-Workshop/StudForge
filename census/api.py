@@ -1,18 +1,22 @@
-"""The Census service API: the three things a client may ask the census to do.
+"""The Census service API: everything a client may ask of the census.
 
+  census_state()      what the census holds now, for deciding what to run
   import_snapshot()   a Rebrickable snapshot becomes the census database
   condense()          the census's part numbers become shapes
   coverage()          statuses, the census tree, the summary and the viewer
 
-Each function is the list of its operation's steps, in order; the work is in
-census/importing/, census/condensing/ and census/coverage/. None of them decides
-whether it is needed: that is the client's job (census/cli.py).
+A client imports this file and nothing else from the census. Each operation's
+function is the list of its steps, in order; the work is in census/importing/,
+census/condensing/ and census/coverage/. None of them decides whether it is
+needed: the client (census/cli.py) reads census_state() and decides.
 """
 
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from census.condensing import changes
+from census.condensing.condense import changed_rule_files
 from census.condensing.condense import condense as condense_tables
 from census.coverage import statuses
 from census.coverage.summary import print_summary
@@ -30,6 +34,47 @@ from census.store.files import (
     REPO,
     sha256,
 )
+
+# The CSVs a snapshot folder must hold, for a client's help text.
+SOURCE_FILES = snapshot.SOURCE_FILES
+# Where coverage() writes the viewer unless the client names another place.
+VIEWER_PATH = REPO / "build" / "census_viewer.html"
+
+# --- state ------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class CensusState:
+    """What the census holds now: what a client needs to decide what to run.
+
+    Text that has no value yet is empty: snapshot_date and built_at before the
+    first import, condensed_at before the first condense.
+    """
+
+    database: str  # the census database's path, from the repo folder
+    manifest: str  # the manifest's file name
+    snapshot_date: str  # the snapshot the census was built from
+    built_at: str  # when it was imported
+    pinned_snapshot: str  # the snapshot the committed manifest records
+    matches_manifest: bool  # whether the census was built from that manifest
+    condensed_at: str  # when it was last condensed
+    changed_rule_files: list[str]  # rule files changed since then
+
+
+def census_state() -> CensusState:
+    """Read what the census holds now. Changes nothing."""
+    meta = census_db.read_meta()
+    return CensusState(
+        database=str(DB_PATH.relative_to(REPO)),
+        manifest=MANIFEST_PATH.name,
+        snapshot_date=meta.get("snapshot_date", ""),
+        built_at=meta.get("built_at", ""),
+        pinned_snapshot=snapshot.manifest_snapshot(),
+        matches_manifest=meta.get("manifest sha256") == sha256(MANIFEST_PATH),
+        condensed_at=meta.get("condensed_at", ""),
+        changed_rule_files=changed_rule_files(meta),
+    )
+
 
 # --- import -----------------------------------------------------------------------
 
@@ -138,7 +183,7 @@ def condense() -> None:
 # --- coverage ---------------------------------------------------------------------
 
 
-def coverage(out_path: Path) -> None:
+def coverage(out_path: Path = VIEWER_PATH) -> None:
     """Work out coverage, build the census tree, print the summary, write the viewer."""
     meta = census_db.read_meta()
     db = census_db.open_census()
