@@ -2,15 +2,14 @@
 
 Only each set's latest inventory version counts, spares are left out, and a
 minifig's shapes count once per minifig in the set. Assemblies and decorated
-shapes count as the shapes they stand for (see census/folding.py), and each
+shapes count as the shapes they stand for (see census/condensing/folding.py), and each
 decorated shape also gets a usage of its own.
 """
 
-import sqlite3
 from collections import Counter, defaultdict
 
-from census import read_table
-from folding import FoldingRules
+from census.condensing.folding import FoldingRules
+from census.store.census_db import Census, read_table
 
 # Usage broken down by set: per_set[part_num][set_num] = quantity, for every
 # shape and every decorated shape. A decorated shape's quantity also counts
@@ -21,7 +20,7 @@ Line = tuple[str, int]
 
 
 def latest_inventory_ids(
-    db: sqlite3.Connection,
+    db: Census,
 ) -> tuple[dict[str, str], dict[str, str]]:
     """Return the latest inventory id for each set and for each minifig.
 
@@ -38,7 +37,7 @@ def latest_inventory_ids(
     return sets, figs
 
 
-def load_inventory_lines(db: sqlite3.Connection) -> dict[str, list[Line]]:
+def load_inventory_lines(db: Census) -> dict[str, list[Line]]:
     """Return every inventory's lines, leaving out spares."""
     lines: defaultdict[str, list[Line]] = defaultdict(list)
     for r in read_table(db, "inventory_parts"):
@@ -48,7 +47,7 @@ def load_inventory_lines(db: sqlite3.Connection) -> dict[str, list[Line]]:
 
 
 def load_set_minifigs(
-    db: sqlite3.Connection, set_inventories: set[str], fig_inventories: dict[str, str]
+    db: Census, set_inventories: set[str], fig_inventories: dict[str, str]
 ) -> dict[str, list[Line]]:
     """Return (minifig inventory id, quantity) pairs for each set inventory."""
     figs: defaultdict[str, list[Line]] = defaultdict(list)
@@ -69,7 +68,7 @@ def set_lines(
     return result
 
 
-def count_usage(db: sqlite3.Connection, rules: FoldingRules) -> tuple[PerSetUsage, int]:
+def count_usage(db: Census, rules: FoldingRules) -> tuple[PerSetUsage, int]:
     """Count each shape's and decorated shape's quantity in each official set.
 
     Minifig shapes are included. Usage is the sum of the quantities; Reach is

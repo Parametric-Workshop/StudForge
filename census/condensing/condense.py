@@ -1,65 +1,57 @@
 """Build the condensed census from the Rebrickable Census.
 
-Reads the census tables in build/census.sqlite (built by census/census.py, or
-rebuilt first if it's missing or out of date) and writes the condensed census
-into the same database. Condensing doesn't re-read the CSVs, so rule changes
-are quick to try.
+Reads the census tables and writes the condensed census into the same database.
+Condensing doesn't re-read the CSVs, so rule changes are quick to try.
 
-The steps, each with its rules in its own module:
-  1. census/folding.py: which part numbers are one shape.
-  2. census/usage.py: how many of each shape the official sets use.
-  3. census/candidates.py: each shape's brick system, and whether it's a
-     candidate or excluded. Every shape is kept, so the viewer can show what
-     is left out and why.
+The steps, each with its rules in its own module of this folder:
+  1. folding.py: which part numbers are one shape.
+  2. usage.py: how many of each shape the official sets use.
+  3. candidates.py: each shape's brick system, and whether it's a candidate or
+     excluded. Every shape is kept, so the viewer can show what is left out and
+     why.
   4. This file: each shape's and decorated shape's details (photo, LDraw IDs,
      years), then the tables.
 
-Terms follow GLOSSARY.md.
+changes.py says what a condense changed from the one before.
 
-Usage:
-  python3 census/condense.py
+Terms follow GLOSSARY.md.
 """
 
-import sqlite3
 import sys
 from collections import Counter, defaultdict
 
-import condensed_census
-from candidates import brick_system, exclusion
-from census import (
-    DB_PATH,
-    REPO,
-    bring_census_up_to_date,
-    now_text,
-    read_table,
-    sha256,
-)
-from condensed_census import (
-    Assembly,
-    CondensedCensus,
-    DecoratedShape,
-    Shape,
-    ShapeSet,
-    count_part_numbers,
-)
-from folding import (
+from census.condensing.candidates import brick_system, exclusion
+from census.condensing.folding import (
     MAX_ASSEMBLY_DEPTH,
     FoldingRules,
     group_designs,
     load_folding_rules,
 )
-from usage import PerSetUsage, count_usage
-
-CENSUS_DIR = REPO / "census"
+from census.condensing.usage import PerSetUsage, count_usage
+from census.store import census_db
+from census.store.census_db import (
+    Assembly,
+    Census,
+    CondensedCensus,
+    DecoratedShape,
+    Shape,
+    ShapeSet,
+    count_part_numbers,
+    now_text,
+    read_table,
+    row_count,
+    write_meta,
+)
+from census.store.files import CENSUS_DIR, sha256
 
 # The files whose rules shape the condensed census. Their checksums are saved
-# with it, so census_viewer.py can tell when it needs condensing again.
+# with it, so the client can tell when it needs condensing again.
 RULE_FILES = [
-    "condense.py",
-    "condensed_census.py",
-    "folding.py",
-    "usage.py",
-    "candidates.py",
+    "condensing/condense.py",
+    "condensing/folding.py",
+    "condensing/usage.py",
+    "condensing/candidates.py",
+    "store/census_db.py",
 ]
 
 # Where Rebrickable keeps an element's photo; inventory photo URLs follow it.
@@ -72,13 +64,13 @@ SetInfo = tuple[str, int]
 # --- Building the records --------------------------------------------------------
 
 
-def load_sets(db: sqlite3.Connection) -> dict[str, SetInfo]:
+def load_sets(db: Census) -> dict[str, SetInfo]:
     """Return each set's (name, release year)."""
     return {r["set_num"]: (r["name"], int(r["year"])) for r in read_table(db, "sets")}
 
 
 def load_images(
-    db: sqlite3.Connection, rules: FoldingRules
+    db: Census, rules: FoldingRules
 ) -> tuple[dict[str, str], dict[str, str]]:
     """Return one photo URL per shape, and one per decorated shape.
 
@@ -118,7 +110,7 @@ def load_images(
     return shapes, decorated
 
 
-def load_ldraw_ids(db: sqlite3.Connection) -> dict[str, list[str]]:
+def load_ldraw_ids(db: Census) -> dict[str, list[str]]:
     """Return the LDraw file names Rebrickable maps to each part number."""
     ldraw: defaultdict[str, list[str]] = defaultdict(list)
     for r in read_table(db, "part_mappings"):
@@ -141,7 +133,7 @@ def usage_in_sets(
 
 
 def make_shapes_and_assemblies(
-    db: sqlite3.Connection,
+    db: Census,
     rules: FoldingRules,
     per_set: PerSetUsage,
     sets: dict[str, SetInfo],
@@ -196,7 +188,7 @@ def make_shapes_and_assemblies(
 
 
 def make_decorated_shapes(
-    db: sqlite3.Connection,
+    db: Census,
     rules: FoldingRules,
     per_set: PerSetUsage,
     sets: dict[str, SetInfo],
@@ -235,7 +227,7 @@ def make_shape_sets(shapes: list[Shape], per_set: PerSetUsage) -> list[ShapeSet]
 # --- Condensing ------------------------------------------------------------------
 
 
-def condense(db: sqlite3.Connection) -> tuple[int, int, int, int]:
+def condense(db: Census) -> tuple[int, int, int, int]:
     """Replace the condensed census tables, built from the census tables.
 
     Returns the number of shapes, candidate shapes, assemblies and official sets.
@@ -257,26 +249,34 @@ def condense(db: sqlite3.Connection) -> tuple[int, int, int, int]:
 
     census = CondensedCensus(shapes, decorated, assemblies)
     # Every part number Rebrickable lists must become a shape, a decorated
-    # shape or an assembly. Checked before writing, so a failure leaves the
-    # previous condensed census in place.
-    part_numbers = db.execute("SELECT COUNT(*) FROM parts").fetchone()[0]
+    # shape or an assembly. Checked before writing anything.
+    part_numbers = row_count(db, "parts")
     accounted = count_part_numbers(census).total
     if accounted != part_numbers:
         raise SystemExit(
             f"Rebrickable lists {part_numbers:,} part numbers, but the condensed "
             f"census accounts for {accounted:,}"
         )
-    condensed_census.write(db, census, make_shape_sets(shapes, per_set))
-    db.executemany(
-        "INSERT OR REPLACE INTO meta VALUES (?,?)",
-        [
-            ("sets", str(official_sets)),
-            ("part_numbers", str(part_numbers)),
-            ("condensed_at", now_text()),
-        ]
-        + [(f"{name} sha256", checksum) for name, checksum in rule_checksums()],
+    census_db.write(db, census, make_shape_sets(shapes, per_set))
+    write_meta(
+        db,
+        {
+            "sets": str(official_sets),
+            "part_numbers": str(part_numbers),
+            "condensed_at": now_text(),
+        }
+        | {f"{name} sha256": checksum for name, checksum in rule_checksums()},
     )
-    db.commit()  # without this, sqlite discards everything on close
+    # Checked before saving, so a condensed census with broken links is never the
+    # one in the database: undoing the change brings the previous one back.
+    problems = census_db.broken_links(db)
+    if problems:
+        db.rollback()
+        raise SystemExit(
+            "The new condensed census is inconsistent, so the previous one was kept: "
+            + "; ".join(problems)
+        )
+    db.commit()
 
     candidates = sum(1 for shape in shapes if shape.excluded is None)
     return len(shapes), candidates, len(assemblies), official_sets
@@ -298,29 +298,3 @@ def changed_rule_files(meta: dict[str, str]) -> list[str]:
         for name, checksum in rule_checksums()
         if meta.get(f"{name} sha256") != checksum
     ]
-
-
-def condense_census() -> None:
-    """Build the condensed census and print what it holds."""
-    db = sqlite3.connect(DB_PATH)
-    shapes, candidates, assemblies, official_sets = condense(db)
-    snapshot_date = db.execute(
-        "SELECT value FROM meta WHERE key = 'snapshot_date'"
-    ).fetchone()[0]
-    db.close()
-    print(
-        f"Condensed census {snapshot_date}: {shapes:,} shapes ({candidates:,} "
-        f"candidates) and {assemblies:,} assemblies, from {official_sets:,} "
-        "official sets"
-    )
-    print(f"  database: {DB_PATH.relative_to(REPO)}")
-
-
-def main() -> None:
-    """Bring the census up to date, then condense it."""
-    bring_census_up_to_date()
-    condense_census()
-
-
-if __name__ == "__main__":
-    main()

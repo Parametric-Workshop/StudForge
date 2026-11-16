@@ -26,9 +26,8 @@ from pathlib import Path
 
 import pytest
 
-import census
-import folding
-import usage
+from census.condensing import folding, usage
+from census.importing import snapshot
 
 SNAPSHOT = Path(__file__).parent / "fixtures" / "sample_snapshot"
 
@@ -37,7 +36,7 @@ SNAPSHOT = Path(__file__).parent / "fixtures" / "sample_snapshot"
 def db(tmp_path_factory: pytest.TempPathFactory) -> Iterator[sqlite3.Connection]:
     """A census database built from the sample snapshot."""
     db_path = tmp_path_factory.mktemp("census") / "census.sqlite"
-    census.create_census(SNAPSHOT, db_path, "2026-10-23")
+    snapshot.create_census(SNAPSHOT, db_path, "2026-10-23")
     connection = sqlite3.connect(db_path)
     yield connection
     connection.close()

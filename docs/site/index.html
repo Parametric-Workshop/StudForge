@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudForge</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground: light-dark(#f6f7f9, #0f172a);
+    --card: light-dark(#ffffff, #1b2440);
+    --line: light-dark(#d5d9e2, #34406a);
+    --ink: light-dark(#1a2030, #e6e9f2);
+    --muted: light-dark(#5a6378, #9aa3bd);
+    --accent: light-dark(#3b3fb8, #9aa0ff);
+  }
+  body {
+    margin: 0;
+    padding: 48px max(16px, 5vw);
+    background: var(--ground);
+    color: var(--ink);
+    font: 16px/1.5 system-ui, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  p { margin: 0 0 24px; color: var(--muted); }
+  .pages { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  a.page {
+    display: block;
+    padding: 20px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: inherit;
+    text-decoration: none;
+  }
+  a.page:hover, a.page:focus-visible { border-color: var(--accent); }
+  a.page strong { display: block; margin-bottom: 4px; color: var(--accent); font-size: 18px; }
+  footer { margin-top: 32px; font-size: 14px; color: var(--muted); }
+  footer a { color: var(--accent); }
+</style>
+<main>
+  <h1>StudForge</h1>
+  <p>Parametric, print-tuned building bricks in FreeCAD.</p>
+  <div class="pages">
+    <a class="page" href="census/">
+      <strong>Census viewer</strong>
+      Every real shape, how much the official sets use it, and which ones StudForge covers. Updated daily.
+    </a>
+    <a class="page" href="architecture/">
+      <strong>Architecture diagram</strong>
+      How the code is laid out, from the applications down to each function.
+    </a>
+  </div>
+  <footer>
+    Census data from <a href="https://rebrickable.com/downloads/">Rebrickable</a>.
+    Source on <a href="https://github.com/Parametric-Workshop/StudForge">GitHub</a>.
+  </footer>
+</main>
+</html>

@@ -1,10 +1,10 @@
-"""Tests for census/tree.py, using a handful of made-up shapes."""
+"""Tests for census/coverage/tree.py, using a handful of made-up shapes."""
 
 from dataclasses import replace
 
-import tree
-from condensed_census import Assembly, DecoratedShape, Shape
-from coverage import Statuses
+from census.coverage import tree
+from census.coverage.statuses import Statuses
+from census.store.census_db import Assembly, DecoratedShape, Shape
 
 GROUPINGS = tree.Groupings(
     groups={"Plates": "Plates", "Bricks": "Bricks"},

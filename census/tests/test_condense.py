@@ -1,13 +1,12 @@
-"""Tests for census/condense.py, on the sample census (see conftest.py)."""
+"""Tests for census/condensing/condense.py, on the sample census (see conftest.py)."""
 
 import sqlite3
 
 import pytest
 
-import condense
-import folding
-import usage
-from condensed_census import Assembly, Shape
+from census.condensing import condense, folding, usage
+from census.store import census_db
+from census.store.census_db import Assembly, Shape
 
 
 @pytest.fixture(scope="module")
@@ -145,3 +144,23 @@ def test_condensing_records_the_rules_it_used(db: sqlite3.Connection) -> None:
     condense.condense(db)
     meta = dict(db.execute("SELECT key, value FROM meta"))
     assert condense.changed_rule_files(meta) == []
+
+
+def test_an_inconsistent_condensed_census_is_not_saved(
+    db: sqlite3.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If the new tables fail their check, the previous condensed census stays."""
+    condense.condense(db)
+    before = census_db.read(db)
+    condensed_at = dict(db.execute("SELECT key, value FROM meta"))["condensed_at"]
+
+    def one_made_up(_db: sqlite3.Connection) -> list[str]:
+        return ["1 made up"]
+
+    monkeypatch.setattr(census_db, "broken_links", one_made_up)
+    monkeypatch.setattr(condense, "now_text", lambda: "later")
+    with pytest.raises(SystemExit, match="previous one was kept: 1 made up"):
+        condense.condense(db)
+    assert census_db.read(db) == before
+    meta = dict(db.execute("SELECT key, value FROM meta"))
+    assert meta["condensed_at"] == condensed_at

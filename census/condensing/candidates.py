@@ -1,7 +1,7 @@
 """Which shapes StudForge aims to make: brick systems and exclusion rules.
 
 These are project decisions, not facts from Rebrickable, so they live apart
-from the folding in census/condense.py. Changing a rule here changes every
+from the folding in census/condensing/condense.py. Changing a rule here changes every
 coverage figure, because candidates are the denominator for coverage.
 """
 

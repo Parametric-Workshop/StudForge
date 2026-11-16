@@ -1,0 +1,76 @@
+# Publishes the project's site on GitHub Pages:
+#
+#   /               the front page, docs/site/index.html
+#   /census/        the census viewer, from the newest census release
+#   /architecture/  the architecture diagram, from the release tagged "architecture"
+#
+# Nothing is built here: the census workflow makes the viewer once a day, and the
+# diagram is uploaded by hand. A part that has not been published yet is left out.
+name: pages
+
+on:
+  # After each daily census update.
+  workflow_run:
+    workflows: [census]
+    types: [completed]
+  push:
+    branches: [main]
+    paths: [docs/site/**, .github/workflows/pages.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write # to publish the site
+  id-token: write # so Pages can check the site came from this workflow
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    # Not after a census update that failed.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Start the site with the front page
+        run: |
+          mkdir -p site
+          cp -r docs/site/. site/
+
+      - name: Add the census viewer
+        run: |
+          latest=$(gh release list --limit 200 --json tagName \
+            --jq '[.[].tagName | select(startswith("census-"))] | sort | last // empty')
+          if [ -n "$latest" ] && gh release download "$latest" \
+            --pattern 'census-viewer-*.html.gz' --dir .; then
+            mkdir -p site/census
+            gunzip --stdout census-viewer-*.html.gz > site/census/index.html
+          else
+            echo "::warning::No census release holds a viewer yet; /census/ is left out."
+          fi
+
+      - name: Add the architecture diagram
+        run: |
+          mkdir -p site/architecture
+          if ! gh release download architecture --pattern architecture.html \
+            --output site/architecture/index.html; then
+            rm -r site/architecture
+            echo "::warning::No architecture release yet; /architecture/ is left out."
+          fi
+
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+      - name: Publish the site
+        id: deploy
+        uses: actions/deploy-pages@v5

@@ -1,0 +1,119 @@
+# Updates the Rebrickable Census once a day and publishes it as a release:
+# the snapshot's CSVs, the census database built and condensed from them, the
+# viewer page, and what changed since the last update. Nothing is committed to
+# the repo. When it succeeds, the pages workflow puts the viewer on GitHub Pages.
+#
+# It can also be run by hand (Actions > census > Run workflow), but it fails if
+# the census was already downloaded that day.
+#
+# Each release is tagged census-<snapshot date>. Old ones are thinned by the
+# schedule in census/store/archive.py. Every check in the census runs first:
+# if one fails, nothing is published and GitHub emails the failure.
+name: census
+
+on:
+  schedule:
+    # 07:00 UTC: 02:00 Eastern Standard Time, 03:00 during daylight saving.
+    # Rebrickable allows one automated download a day.
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write # to create and delete releases
+
+concurrency: census
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # Rebrickable allows one automated download a day, so a second run on the
+      # same day (UTC) fails here, before anything is downloaded. The marker is a
+      # cache entry named for the day. To allow another run after a failed one,
+      # delete it:  gh cache delete census-download-<YYYY-MM-DD>
+      - name: Note today's date
+        id: day
+        run: echo "day=$(date --utc +%F)" >> "$GITHUB_OUTPUT"
+      - name: Look for today's download marker
+        id: marker
+        uses: actions/cache/restore@v6
+        with:
+          path: download-marker.txt
+          key: census-download-${{ steps.day.outputs.day }}
+          lookup-only: true
+      - name: Stop if the census was already downloaded today
+        if: steps.marker.outputs.cache-hit == 'true'
+        run: |
+          echo "::error::The census was already downloaded on ${{ steps.day.outputs.day }} (UTC)." \
+            "Rebrickable allows one download a day."
+          exit 1
+
+      - uses: actions/checkout@v7
+      # setup-uv publishes no major-version tag, so pin an exact release.
+      - uses: astral-sh/setup-uv@v10.3.0
+      - name: Install pinned tools from uv.lock
+        run: uv sync --locked
+
+      - name: Start from the newest published census
+        # So the import replaces a real census, and condensing can say what changed.
+        run: |
+          mkdir -p build
+          latest=$(gh release list --limit 200 --json tagName \
+            --jq '[.[].tagName | select(startswith("census-"))] | sort | last // empty')
+          if [ -n "$latest" ]; then
+            gh release download "$latest" --pattern 'census-*.sqlite.gz' --dir build
+            gunzip --stdout build/census-*.sqlite.gz > build/census.sqlite
+            rm build/census-*.sqlite.gz
+          fi
+
+      # Marked before the download starts, so a download that fails part way
+      # still counts as the day's one.
+      - name: Write today's download marker
+        run: date --utc > download-marker.txt
+      - name: Save today's download marker
+        uses: actions/cache/save@v6
+        with:
+          path: download-marker.txt
+          key: census-download-${{ steps.day.outputs.day }}
+
+      - name: Import the latest snapshot
+        run: uv run python -m census import --download
+
+      - name: Condense it
+        run: uv run python -m census condense
+
+      - name: Work out coverage and write the viewer
+        run: uv run python -m census coverage
+
+      - name: Publish the snapshot and the census
+        run: |
+          date=$(ls archive/census/census-*.sqlite.gz | sort | tail -n 1 \
+            | sed -E 's/.*census-(.*)\.sqlite\.gz/\1/')
+          if gh release view "census-$date" > /dev/null 2>&1; then
+            echo "census-$date is already published: Rebrickable has no newer snapshot."
+            exit 0
+          fi
+          {
+            echo "Data source: [Rebrickable](https://rebrickable.com/downloads/)," \
+              "free for personal and commercial use with attribution."
+            echo
+            echo '```'
+            cat build/census_changes.log
+            echo '```'
+          } > notes.md
+          # The pages workflow publishes this copy of the viewer.
+          gzip --stdout build/census_viewer.html > "census-viewer-$date.html.gz"
+          gh release create "census-$date" \
+            "archive/census/snapshot-$date.tar.gz" \
+            "archive/census/census-$date.sqlite.gz" \
+            "census-viewer-$date.html.gz" \
+            --title "Census $date" --notes-file notes.md --latest=false
+
+      - name: Thin old releases
+        run: |
+          gh release list --limit 200 --json tagName --jq '.[].tagName' \
+            | uv run python -m census thin-releases \
+            | while read -r tag; do gh release delete "$tag" --yes --cleanup-tag; done

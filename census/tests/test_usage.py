@@ -1,8 +1,8 @@
-"""Tests for census/usage.py, on the sample census (see conftest.py)."""
+"""Tests for census/condensing/usage.py, on the sample census (see conftest.py)."""
 
 from collections import Counter
 
-import usage
+from census.condensing import usage
 
 
 def test_usage_leaves_out_spares_and_old_versions(

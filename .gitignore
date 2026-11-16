@@ -18,7 +18,12 @@ __pycache__/
 # the census scripts rebuild it.
 build/
 
-# Rebrickable snapshots, one folder per download date. Not safe to delete:
-# Rebrickable allows one download a day, and older snapshots can't be fetched
-# again.
+# Rebrickable snapshots, one folder per download date. The newest two are kept
+# here; every one is archived first (see below), and older folders are then
+# removed by the import.
 downloads/
+
+# Dated, compressed archives of each snapshot and census, thinned as they age
+# (census/archive.py). Not safe to delete: Rebrickable allows one download a
+# day, and older snapshots can't be fetched again.
+archive/

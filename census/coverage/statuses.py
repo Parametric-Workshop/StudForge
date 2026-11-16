@@ -3,8 +3,8 @@
 Statuses are recorded by hand in coverage/coverage.csv, which is committed so
 that everyone sees the same coverage and changes show up in pull requests.
 load() reads and checks that file, and works out the statuses that follow from
-it. write_table() copies them all into the census database, as a working copy
-for SQL; the file stays the source.
+it. census_db.write_coverage() copies them all into the census database,
+as a working copy for SQL; the file stays the source.
 
 The rules (see GLOSSARY.md and docs/adr/0001-assemblies-are-not-shapes.md):
   - A shape has the status recorded for it, if any.
@@ -14,14 +14,10 @@ The rules (see GLOSSARY.md and docs/adr/0001-assemblies-are-not-shapes.md):
     "shape modeled" once the shape or assembly it folds into is modeled.
 """
 
-import csv
-import sqlite3
 from pathlib import Path
 
-from census import REPO
-from condensed_census import Assembly, CondensedCensus, DecoratedShape, Shape
-
-COVERAGE_PATH = REPO / "coverage" / "coverage.csv"
+from census.store.census_db import Assembly, CondensedCensus, DecoratedShape, Shape
+from census.store.coverage_file import COVERAGE_PATH, read_coverage_file
 
 # The statuses coverage.csv can record, from least to most advanced.
 STATUSES = ["planned", "modeled", "validated", "print-tested"]
@@ -44,8 +40,7 @@ Statuses = dict[str, str]
 
 def read_file(path: Path) -> Statuses:
     """Return the status recorded for each part number in a coverage file."""
-    with open(path, newline="", encoding="utf-8") as f:
-        recorded = {r["part_num"]: r["status"] for r in csv.DictReader(f)}
+    recorded = read_coverage_file(path)
     unknown = {p: s for p, s in recorded.items() if s not in STATUSES}
     if unknown:
         raise SystemExit(f"Unknown status in {path.name}: {unknown}")
@@ -125,10 +120,3 @@ def group_by_status[T: (Shape, DecoratedShape)](
 def in_group[T](by_status: dict[str, list[T]], group: str) -> list[T]:
     """Return the items, from group_by_status(), in one of STATUS_GROUPS."""
     return [item for status in STATUS_GROUPS[group] for item in by_status[status]]
-
-
-def write_table(db: sqlite3.Connection, status_of: Statuses) -> None:
-    """Replace the coverage table with these statuses (commit afterwards)."""
-    db.execute("DROP TABLE IF EXISTS coverage")
-    db.execute("CREATE TABLE coverage (part_num TEXT PRIMARY KEY, status TEXT)")
-    db.executemany("INSERT INTO coverage VALUES (?, ?)", sorted(status_of.items()))

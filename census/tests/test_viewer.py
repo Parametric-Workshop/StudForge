@@ -1,8 +1,8 @@
-"""Tests for census/census_viewer.py, on the made-up tree from test_tree.py."""
+"""Tests for census/coverage/viewer.py, on the made-up tree from test_tree.py."""
 
 from test_tree import STATUSES, build
 
-import census_viewer
+from census.coverage import viewer
 
 
 def test_viewer_cards() -> None:
@@ -10,7 +10,7 @@ def test_viewer_cards() -> None:
 
     The excluded sticker's decorated shape isn't counted under Candidates.
     """
-    nodes = {n["label"]: n for n in census_viewer.viewer_nodes(build(), STATUSES)}
+    nodes = {n["label"]: n for n in viewer.viewer_nodes(build(), STATUSES)}
     assert "usageShare" not in nodes["Part numbers"]
     assert "shapeShare" not in nodes["Excluded"]
     assert nodes["Candidates"]["usageShare"] == 1.0

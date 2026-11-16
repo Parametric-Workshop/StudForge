@@ -2,17 +2,16 @@
 
 Decorated shapes fold into their shape, mold variants and alternates group into
 a Design, and Assemblies stand for the shapes inside them (see GLOSSARY.md and
-docs/adr/0001-assemblies-are-not-shapes.md). census/condense.py applies these
+docs/adr/0001-assemblies-are-not-shapes.md). census/condensing/condense.py applies these
 rules to the census.
 """
 
 import re
-import sqlite3
 from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
-from census import read_table
+from census.store.census_db import Census, read_table
 
 # Rebrickable relationship types (part_relationships: rel_type, child, parent)
 DECORATION_RELS = {"P", "T"}  # print, pattern: child is the parent, decorated
@@ -96,7 +95,7 @@ class FoldingRules:
                 yield from self.expand(member, depth + 1)
 
 
-def load_folding_rules(db: sqlite3.Connection) -> FoldingRules:
+def load_folding_rules(db: Census) -> FoldingRules:
     """Sort part_relationships into decorated shapes, Designs and Assemblies."""
     rules = FoldingRules()
     members: defaultdict[str, list[str]] = defaultdict(list)
@@ -120,7 +119,7 @@ def load_folding_rules(db: sqlite3.Connection) -> FoldingRules:
     return rules
 
 
-def fold_by_part_number(rules: FoldingRules, db: sqlite3.Connection) -> None:
+def fold_by_part_number(rules: FoldingRules, db: Census) -> None:
     """Fold decorated shapes that have no relationship row, by their part number.
 
     The stem is the part number before its pr or pat suffix. In order:
