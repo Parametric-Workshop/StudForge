@@ -57,8 +57,16 @@ The system of compatible shapes a shape belongs to, set by its stud grid: standa
 _Avoid_: Scale, line, theme
 
 **Family**:
-A group of shapes produced by one parametric generator and differing only in size or selectable features, such as the brick family covering 1 x 1 through 2 x 4 and beyond.
+A group of shapes produced by one parametric generator and differing only in size or selectable features, such as the block family covering bricks, plates and tiles of every size.
 _Avoid_: Category, series, type
+
+**Sized family**:
+A family whose files can be resized in `Params`, their size rules held in the file as expressions, such as the block family.
+_Avoid_: Parametric family, resizable part
+
+**Fixed shape**:
+A shape made by a generator of its own, whose file keeps its nominal values and print offsets in `Params` but can't be resized.
+_Avoid_: One-off, static part
 
 **Category**:
 Rebrickable's classification of a shape (Bricks, Plates, Tiles Special); used only to describe source data.
@@ -129,6 +137,14 @@ _Avoid_: Tolerance, spec
 **Print offset**:
 A deliberate, feature-specific adjustment to a nominal dimension so the printed feature fits as intended.
 _Avoid_: Tolerance, clearance (unless it is literally a gap), compensation
+
+**Fit group**:
+A named set of print offsets that tune the same kind of fit, such as studs and tubes, shared by every family that has those features.
+_Avoid_: Category, offset category
+
+**Grip band**:
+The narrow band just above a shape's bottom face where its walls, tubes and pins reach their gripping size, clear of the first printed layers; elsewhere they stand slightly off the studs below.
+_Avoid_: Clamp, clutch band
 
 **Filament profile**:
 A named set of print offsets tuned for one filament.
