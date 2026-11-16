@@ -202,6 +202,8 @@ def thin_folders(download_dir: Path, archive_dir: Path) -> list[Path]:
     whose date the schedule would keep is left alone.
     """
     folders: dict[Date, Path] = {}
+    if not download_dir.exists():  # nothing was ever downloaded here
+        return []
     for path in download_dir.iterdir():
         if path.is_dir():
             try:

@@ -129,3 +129,8 @@ def test_only_dated_names_with_the_prefix_are_thinned() -> None:
     tags = [f"census-{day}" for day in days(Date(2026, 10, 24), 5)]
     dropped = archive.names_to_drop([*tags, "v1.0", "census-notes"], "census-")
     assert dropped == ["census-2026-10-24", "census-2026-10-25"]
+
+
+def test_thinning_folders_is_fine_with_no_downloads_folder(tmp_path: Path) -> None:
+    """A census built from a folder given by hand has no downloads folder to thin."""
+    assert archive.thin_folders(tmp_path / "downloads", tmp_path / "archive") == []
