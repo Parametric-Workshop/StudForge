@@ -37,8 +37,10 @@ from condensed_census import (
     DB_PATH,
     Census,
     add_index,
+    commit,
     open_census,
     read_meta,
+    start_snapshot,
     write_meta,
     write_table,
 )
@@ -114,27 +116,40 @@ def create_census(
 ) -> dict[str, int]:
     """Create the census database from a snapshot; return each table's row count.
 
-    The census is always rebuilt from scratch, so stale rows can't survive.
+    In a census that already exists, this replaces the tables copied from
+    Rebrickable and removes everything worked out from the old snapshot (the
+    condensed tables, coverage and the build details), so nothing stale survives.
+    Tables that don't come from a snapshot are kept. If the copy fails partway,
+    the census is left holding the previous snapshot.
     manifest_sha256 is the checksum of the manifest written for this snapshot,
     which census_viewer.py compares with the committed one.
     """
     db_path.parent.mkdir(exist_ok=True)
-    db_path.unlink(missing_ok=True)
     db = open_census(db_path)
-    counts = {Path(name).stem: load_csv(db, source / name) for name in SOURCE_FILES}
-    for table, column in INDEXES:
-        add_index(db, table, column)
-    write_meta(
-        db,
-        {
-            "source": "Rebrickable",
-            "snapshot_date": snapshot_date,
-            "built_at": now_text(),
-            "manifest sha256": manifest_sha256,
-        },
-    )
-    db.commit()  # without this, sqlite discards everything on close
-    db.close()
+    try:
+        start_snapshot(db, [Path(name).stem for name in SOURCE_FILES])
+        counts = {Path(name).stem: load_csv(db, source / name) for name in SOURCE_FILES}
+        for name in SOURCE_FILES:
+            copied, listed = counts[Path(name).stem], count_rows(source / name)
+            if copied != listed:
+                raise SystemExit(
+                    f"{name} has {listed:,} rows but {copied:,} were copied; "
+                    "the census is left as it was"
+                )
+        for table, column in INDEXES:
+            add_index(db, table, column)
+        write_meta(
+            db,
+            {
+                "source": "Rebrickable",
+                "snapshot_date": snapshot_date,
+                "built_at": now_text(),
+                "manifest sha256": manifest_sha256,
+            },
+        )
+        commit(db)  # until this, the census still holds the previous snapshot
+    finally:
+        db.close()  # closing without a commit undoes a failed import
     return counts
 
 

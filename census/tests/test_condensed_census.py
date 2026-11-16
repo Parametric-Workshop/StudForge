@@ -61,3 +61,24 @@ def test_coverage_is_saved_for_a_later_reader(tmp_path: Path) -> None:
     saved = dict(db.execute("SELECT part_num, status FROM coverage"))
     db.close()
     assert saved == {"3001": "modeled", "3003": "planned"}
+
+
+def test_a_write_that_is_not_committed_can_be_undone(db: sqlite3.Connection) -> None:
+    """Until a commit, the previous condensed census is one rollback away."""
+    condense.condense(db)
+    before = len(condensed_census.read(db).shapes)
+    condensed_census.write(db, condensed_census.CondensedCensus([], [], []), [])
+    assert condensed_census.read(db).shapes == []
+    db.rollback()
+    assert len(condensed_census.read(db).shapes) == before
+
+
+def test_broken_links_are_found(db: sqlite3.Connection) -> None:
+    """A sound condensed census has none; a decorated shape with no holder is one."""
+    condense.condense(db)
+    assert condensed_census.broken_links(db) == []
+    db.execute("UPDATE decorated_shape SET folds_into = 'nothing' WHERE rowid = 1")
+    assert condensed_census.broken_links(db) == [
+        "1 decorated shapes that fold into nothing"
+    ]
+    db.rollback()

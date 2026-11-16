@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 import census
+import condense
 
 SNAPSHOT = Path(__file__).parent / "fixtures" / "sample_snapshot"
 
@@ -36,13 +37,86 @@ def test_every_csv_becomes_a_table_exactly_as_downloaded(tmp_path: Path) -> None
     }
 
 
-def test_rebuilding_replaces_the_old_database(tmp_path: Path) -> None:
-    """A second build starts from scratch rather than adding to the first."""
+def test_a_new_snapshot_replaces_the_old_ones_tables(tmp_path: Path) -> None:
+    """A second build replaces the copied tables rather than adding to them."""
     db_path = tmp_path / "census.sqlite"
     census.create_census(SNAPSHOT, db_path, "2026-10-23")
     counts = census.create_census(SNAPSHOT, db_path, "2026-10-24")
     db = sqlite3.connect(db_path)
     assert db.execute("SELECT COUNT(*) FROM parts").fetchone()[0] == counts["parts"]
+    snapshot = db.execute("SELECT value FROM meta WHERE key = 'snapshot_date'")
+    assert snapshot.fetchone()[0] == "2026-10-24"
+    db.close()
+
+
+def test_a_new_snapshot_removes_what_was_worked_out_from_the_old_one(
+    tmp_path: Path,
+) -> None:
+    """The condensed tables and their details go, so the census is condensed again."""
+    db_path = tmp_path / "census.sqlite"
+    census.create_census(SNAPSHOT, db_path, "2026-10-23")
+    db = sqlite3.connect(db_path)
+    condense.condense(db)
+    db.close()
+
+    census.create_census(SNAPSHOT, db_path, "2026-10-24")
+    db = sqlite3.connect(db_path)
+    tables = {name for (name,) in db.execute("SELECT name FROM sqlite_master")}
+    meta = dict(db.execute("SELECT key, value FROM meta"))
+    db.close()
+    assert "condensed_shape" not in tables
+    assert "condensed_at" not in meta
+
+
+def test_a_new_snapshot_keeps_tables_that_are_not_from_a_snapshot(
+    tmp_path: Path,
+) -> None:
+    """A table of StudForge's own survives a new snapshot, rows and all."""
+    db_path = tmp_path / "census.sqlite"
+    census.create_census(SNAPSHOT, db_path, "2026-10-23")
+    db = sqlite3.connect(db_path)
+    db.execute("CREATE TABLE library (part_num TEXT, build_key TEXT)")
+    db.execute("INSERT INTO library VALUES ('3001', 'abc')")
+    db.commit()
+    db.close()
+
+    census.create_census(SNAPSHOT, db_path, "2026-10-24")
+    db = sqlite3.connect(db_path)
+    assert db.execute("SELECT * FROM library").fetchall() == [("3001", "abc")]
+    db.close()
+
+
+def test_a_failed_import_leaves_the_previous_snapshot(tmp_path: Path) -> None:
+    """If a CSV is missing, the census still holds the old snapshot, whole."""
+    db_path = tmp_path / "census.sqlite"
+    census.create_census(SNAPSHOT, db_path, "2026-10-23")
+    with pytest.raises(FileNotFoundError):
+        census.create_census(tmp_path / "no_such_folder", db_path, "2026-10-24")
+
+    db = sqlite3.connect(db_path)
+    snapshot = db.execute("SELECT value FROM meta WHERE key = 'snapshot_date'")
+    assert snapshot.fetchone()[0] == "2026-10-23"
+    assert db.execute("SELECT COUNT(*) FROM parts").fetchone()[0] > 0
+    db.close()
+
+
+def test_an_import_that_copies_the_wrong_number_of_rows_is_not_saved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each table's row count is checked against its CSV before anything is saved."""
+    db_path = tmp_path / "census.sqlite"
+    census.create_census(SNAPSHOT, db_path, "2026-10-23")
+
+    def a_million(_path: Path) -> int:
+        return 1_000_000
+
+    monkeypatch.setattr(census, "count_rows", a_million)
+    with pytest.raises(SystemExit, match="the census is left as it was"):
+        census.create_census(SNAPSHOT, db_path, "2026-10-24")
+
+    db = sqlite3.connect(db_path)
+    snapshot = db.execute("SELECT value FROM meta WHERE key = 'snapshot_date'")
+    assert snapshot.fetchone()[0] == "2026-10-23"
     db.close()
 
 

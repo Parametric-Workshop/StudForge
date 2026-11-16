@@ -256,8 +256,7 @@ def condense(db: Census) -> tuple[int, int, int, int]:
 
     census = CondensedCensus(shapes, decorated, assemblies)
     # Every part number Rebrickable lists must become a shape, a decorated
-    # shape or an assembly. Checked before writing, so a failure leaves the
-    # previous condensed census in place.
+    # shape or an assembly. Checked before writing anything.
     part_numbers = row_count(db, "parts")
     accounted = count_part_numbers(census).total
     if accounted != part_numbers:
@@ -275,7 +274,16 @@ def condense(db: Census) -> tuple[int, int, int, int]:
         }
         | {f"{name} sha256": checksum for name, checksum in rule_checksums()},
     )
-    db.commit()  # without this, sqlite discards everything on close
+    # Checked before saving, so a condensed census with broken links is never the
+    # one in the database: undoing the change brings the previous one back.
+    problems = condensed_census.broken_links(db)
+    if problems:
+        db.rollback()
+        raise SystemExit(
+            "The new condensed census is inconsistent, so the previous one was kept: "
+            + "; ".join(problems)
+        )
+    db.commit()
 
     candidates = sum(1 for shape in shapes if shape.excluded is None)
     return len(shapes), candidates, len(assemblies), official_sets
