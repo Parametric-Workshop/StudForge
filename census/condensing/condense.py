@@ -1,36 +1,35 @@
 """Build the condensed census from the Rebrickable Census.
 
-Reads the census tables in build/census.sqlite (built by census/census.py, or
-rebuilt first if it's missing or out of date) and writes the condensed census
-into the same database. Condensing doesn't re-read the CSVs, so rule changes
-are quick to try.
+Reads the census tables and writes the condensed census into the same database.
+Condensing doesn't re-read the CSVs, so rule changes are quick to try.
 
-The steps, each with its rules in its own module:
-  1. census/folding.py: which part numbers are one shape.
-  2. census/usage.py: how many of each shape the official sets use.
-  3. census/candidates.py: each shape's brick system, and whether it's a
-     candidate or excluded. Every shape is kept, so the viewer can show what
-     is left out and why.
+The steps, each with its rules in its own module of this folder:
+  1. folding.py: which part numbers are one shape.
+  2. usage.py: how many of each shape the official sets use.
+  3. candidates.py: each shape's brick system, and whether it's a candidate or
+     excluded. Every shape is kept, so the viewer can show what is left out and
+     why.
   4. This file: each shape's and decorated shape's details (photo, LDraw IDs,
      years), then the tables.
 
-Terms follow GLOSSARY.md.
+changes.py says what a condense changed from the one before.
 
-Usage:
-  python3 census/condense.py
+Terms follow GLOSSARY.md.
 """
 
 import sys
 from collections import Counter, defaultdict
 
-import archive
-import changes
-import condensed_census
-import coverage
-from candidates import brick_system, exclusion
-from census import ARCHIVE_DIR, REPO, bring_census_up_to_date, now_text, sha256
-from condensed_census import (
-    DB_PATH,
+from census.condensing.candidates import brick_system, exclusion
+from census.condensing.folding import (
+    MAX_ASSEMBLY_DEPTH,
+    FoldingRules,
+    group_designs,
+    load_folding_rules,
+)
+from census.condensing.usage import PerSetUsage, count_usage
+from census.store import census_db
+from census.store.census_db import (
     Assembly,
     Census,
     CondensedCensus,
@@ -38,32 +37,21 @@ from condensed_census import (
     Shape,
     ShapeSet,
     count_part_numbers,
-    open_census,
-    read_meta,
+    now_text,
     read_table,
     row_count,
     write_meta,
 )
-from folding import (
-    MAX_ASSEMBLY_DEPTH,
-    FoldingRules,
-    group_designs,
-    load_folding_rules,
-)
-from usage import PerSetUsage, count_usage
-
-CENSUS_DIR = REPO / "census"
-# Each condense adds what it changed to this log (local only, like the census).
-CHANGES_PATH = REPO / "build" / "census_changes.log"
+from census.store.files import CENSUS_DIR, sha256
 
 # The files whose rules shape the condensed census. Their checksums are saved
-# with it, so census_viewer.py can tell when it needs condensing again.
+# with it, so the client can tell when it needs condensing again.
 RULE_FILES = [
-    "condense.py",
-    "condensed_census.py",
-    "folding.py",
-    "usage.py",
-    "candidates.py",
+    "condensing/condense.py",
+    "condensing/folding.py",
+    "condensing/usage.py",
+    "condensing/candidates.py",
+    "store/census_db.py",
 ]
 
 # Where Rebrickable keeps an element's photo; inventory photo URLs follow it.
@@ -269,7 +257,7 @@ def condense(db: Census) -> tuple[int, int, int, int]:
             f"Rebrickable lists {part_numbers:,} part numbers, but the condensed "
             f"census accounts for {accounted:,}"
         )
-    condensed_census.write(db, census, make_shape_sets(shapes, per_set))
+    census_db.write(db, census, make_shape_sets(shapes, per_set))
     write_meta(
         db,
         {
@@ -281,7 +269,7 @@ def condense(db: Census) -> tuple[int, int, int, int]:
     )
     # Checked before saving, so a condensed census with broken links is never the
     # one in the database: undoing the change brings the previous one back.
-    problems = condensed_census.broken_links(db)
+    problems = census_db.broken_links(db)
     if problems:
         db.rollback()
         raise SystemExit(
@@ -310,40 +298,3 @@ def changed_rule_files(meta: dict[str, str]) -> list[str]:
         for name, checksum in rule_checksums()
         if meta.get(f"{name} sha256") != checksum
     ]
-
-
-def condense_census() -> None:
-    """Build the condensed census, print what it holds and log what changed."""
-    db = open_census()
-    previous = condensed_census.read_previous(db)
-    shapes, candidates, assemblies, official_sets = condense(db)
-    sections = None
-    if previous is not None:
-        tracked = set(coverage.read_file(coverage.COVERAGE_PATH))
-        sections = changes.compare(previous, condensed_census.read(db), tracked)
-    db.close()
-    meta = read_meta()
-    print(
-        f"Condensed census {meta['snapshot_date']}: {shapes:,} shapes ({candidates:,} "
-        f"candidates) and {assemblies:,} assemblies, from {official_sets:,} "
-        "official sets"
-    )
-    print(f"  database: {DB_PATH.relative_to(REPO)}")
-    heading = f"Condensed {meta['condensed_at']}, snapshot {meta['snapshot_date']}"
-    with open(CHANGES_PATH, "a", encoding="utf-8") as log:
-        log.write("\n".join(changes.report(heading, sections)) + "\n")
-    if sections is not None:
-        print(f"  changes: {changes.summary(sections)}")
-        print(f"  log: {CHANGES_PATH.relative_to(REPO)}")
-    # The archived copy for a snapshot is the census as last condensed.
-    archive.archive_census(DB_PATH, ARCHIVE_DIR, meta["snapshot_date"])
-
-
-def main() -> None:
-    """Bring the census up to date, then condense it."""
-    bring_census_up_to_date()
-    condense_census()
-
-
-if __name__ == "__main__":
-    main()

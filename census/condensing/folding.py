@@ -2,7 +2,7 @@
 
 Decorated shapes fold into their shape, mold variants and alternates group into
 a Design, and Assemblies stand for the shapes inside them (see GLOSSARY.md and
-docs/adr/0001-assemblies-are-not-shapes.md). census/condense.py applies these
+docs/adr/0001-assemblies-are-not-shapes.md). census/condensing/condense.py applies these
 rules to the census.
 """
 
@@ -11,7 +11,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
-from condensed_census import Census, read_table
+from census.store.census_db import Census, read_table
 
 # Rebrickable relationship types (part_relationships: rel_type, child, parent)
 DECORATION_RELS = {"P", "T"}  # print, pattern: child is the parent, decorated

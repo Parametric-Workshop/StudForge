@@ -1,4 +1,4 @@
-"""Tests for census/archive.py, in a temporary folder."""
+"""Tests for census/store/archive.py, in a temporary folder."""
 
 import datetime
 import gzip
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-import archive
+from census.store import archive
 
 Date = datetime.date
 

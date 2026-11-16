@@ -1,8 +1,8 @@
-"""Tests for census/candidates.py: brick systems and exclusion rules."""
+"""Tests for census/condensing/candidates.py: brick systems and exclusion rules."""
 
 import pytest
 
-import candidates
+from census.condensing import candidates
 
 
 @pytest.mark.parametrize(

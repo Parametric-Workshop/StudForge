@@ -1,9 +1,9 @@
-"""Tests for census/changes.py, on made-up condensed censuses."""
+"""Tests for census/condensing/changes.py, on made-up condensed censuses."""
 
 from dataclasses import replace
 
-import changes
-from condensed_census import Assembly, CondensedCensus, DecoratedShape, Shape
+from census.condensing import changes
+from census.store.census_db import Assembly, CondensedCensus, DecoratedShape, Shape
 
 BRICK = Shape(
     part_num="3001",

@@ -1,85 +1,29 @@
-"""Build the census viewer: a drill-down page of the census tree.
+"""Write the census viewer: a drill-down page of the census tree.
 
-Loads the condensed census, builds the census tree (census/tree.py), prints
-a summary (census/summary.py) and writes the viewer page.
-
-Before building, it brings the census up to date (see
-bring_census_up_to_date in census/census.py). Then, if a rule file in
-census/condense.py's RULE_FILES changed since the census was last condensed,
-it condenses it again.
-
-Reads:
-  build/census.sqlite          (built by census/census.py, then census/condense.py)
-  census/census-manifest.json  the snapshot the census should hold
-  census/groups.toml          category groups
-  census/families.toml        family rules
-  coverage/coverage.csv       status of each shape and decorated shape tracked
-  census/viewer_template.html the page, before the data goes in
-
-Writes:
-  build/census_viewer.html     the viewer page (loads its libraries from jsDelivr)
-
-Usage:
-  python3 census/census_viewer.py [--out PATH]
+The page is viewer_template.html, in this folder, with the tree's cards and the
+glossary's definitions filled in. It loads its libraries from jsDelivr.
 """
 
-import argparse
 import json
 import re
 from pathlib import Path
 
-import condense
-import condensed_census
-import coverage
-from census import REPO, bring_census_up_to_date
-from condensed_census import (
-    Assembly,
-    DecoratedShape,
-    Shape,
-    count_part_numbers,
-    read_meta,
-)
-from coverage import (
+from census.coverage.statuses import (
     DECORATED_STATUSES,
     STATUSES,
     Statuses,
     group_by_status,
     in_group,
 )
-from summary import print_summary
-from tree import Node, build_tree, find, load_groupings
+from census.coverage.tree import Node, find
+from census.store.census_db import Assembly, DecoratedShape, Shape
+from census.store.files import REPO
 
-TEMPLATE_PATH = REPO / "census" / "viewer_template.html"
+TEMPLATE_PATH = Path(__file__).with_name("viewer_template.html")
 GLOSSARY_PATH = REPO / "GLOSSARY.md"
 
 # A GLOSSARY.md entry: "**Term**:" on one line, its definition on the next.
 GLOSSARY_ENTRY = re.compile(r"^\*\*(.+?)\*\*:\n(.+)$", re.MULTILINE)
-OUT_PATH = REPO / "build" / "census_viewer.html"
-
-
-# --- Keeping the condensed census current ---------------------------------------
-
-
-def check_condensed(meta: dict[str, str]) -> dict[str, str]:
-    """Condense the census again if it never was, or a rule file changed.
-
-    Returns the census details (the meta table), read again after condensing.
-    """
-    changed = condense.changed_rule_files(meta)
-    if "condensed_at" not in meta:
-        reason = "not condensed yet"
-    elif changed:
-        reason = f"changed since {meta['condensed_at']}: {', '.join(changed)}"
-    else:
-        print(
-            f"Condensed census: condensed {meta['condensed_at']}; "
-            "rule files unchanged, no condensing needed\n"
-        )
-        return meta
-    print(f"Condensed census: {reason}; condensing again")
-    condense.condense_census()
-    print()
-    return read_meta()
 
 
 # --- Output: viewer --------------------------------------------------------------
@@ -224,39 +168,3 @@ def write_viewer(root: Node, status_of: Statuses, out_path: Path) -> None:
     page = template.replace("/*DATA*/null", json.dumps(viewer_nodes(root, status_of)))
     out_path.parent.mkdir(exist_ok=True)
     out_path.write_text(page, encoding="utf-8")
-
-
-def main() -> None:
-    """Build the tree, print the summary and write the viewer."""
-    parser = argparse.ArgumentParser(description="Build the census tree and viewer.")
-    parser.add_argument(
-        "--out", type=Path, default=OUT_PATH, help="where to write the viewer"
-    )
-    args = parser.parse_args()
-    bring_census_up_to_date()
-    meta = check_condensed(read_meta())
-    db = condensed_census.open_census()
-    census = condensed_census.read(db)
-    status_of = coverage.load(census)
-    condensed_census.write_coverage(db, status_of)
-    db.close()
-    numbers = count_part_numbers(census)
-    # The root card: what the condensed census made of every part number.
-    title = f"Rebrickable part numbers: {numbers.total:,}"
-    note = "\n".join(
-        [
-            f"{numbers.shapes:,} shapes",
-            f"{numbers.decorated:,} decorated shapes",
-            f"{numbers.assemblies:,} assemblies",
-        ]
-    )
-    footer = f"Rebrickable snapshot {meta['snapshot_date']}"
-    root = build_tree(census.shapes, title, note, footer, load_groupings())
-
-    print_summary(root, numbers, status_of)
-    write_viewer(root, status_of, args.out)
-    print(f"\nViewer: {args.out}")
-
-
-if __name__ == "__main__":
-    main()

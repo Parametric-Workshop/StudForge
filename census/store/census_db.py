@@ -9,9 +9,10 @@ checks that), so a change of database is a change to this file alone:
   - write_table() and add_index() copy a table in from Rebrickable; read_table()
     yields its rows and row_count() counts them.
   - read() and read_shape_sets() load the condensed tables as the records below,
-    which census/condense.py builds and saves with write(). read_previous() loads
-    the condensed census a new one is about to replace, to compare the two.
-  - write_coverage() saves the statuses census/coverage.py works out.
+    which census/condensing/condense.py builds and saves with write().
+    read_previous() loads the condensed census a new one is about to replace, to
+    compare the two.
+  - write_coverage() saves the statuses census/coverage/statuses.py works out.
 
 Every change is all-or-nothing: begin() starts one, and until it is committed the
 census still holds what it held before. broken_links() and commit() check the
@@ -23,14 +24,14 @@ names for columns and fields, so a table can be read straight back into its clas
 Terms follow GLOSSARY.md.
 """
 
+import datetime
 import sqlite3
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-# build/ is local only: the census is built from a snapshot, never committed.
-DB_PATH = Path(__file__).resolve().parent.parent / "build" / "census.sqlite"
+from census.store.files import DB_PATH
 
 
 def year_text(first_year: int | None, last_year: int | None) -> str:
@@ -303,6 +304,11 @@ def read_meta() -> dict[str, str]:
     return meta
 
 
+def now_text() -> str:
+    """Return the local date and time to the minute, such as 2026-10-26 22:19."""
+    return datetime.datetime.now().isoformat(sep=" ", timespec="minutes")
+
+
 def write_meta(db: Census, details: dict[str, str]) -> None:
     """Add these details to the meta table, replacing any already there.
 
@@ -470,7 +476,7 @@ def read_shape_sets(db: Census) -> list[ShapeSet]:
 def write_coverage(db: Census, status_of: dict[str, str]) -> None:
     """Replace the coverage table with each part number's status, and save it.
 
-    A working copy for SQL of what census/coverage.py works out;
+    A working copy for SQL of what census/coverage/statuses.py works out;
     coverage/coverage.csv stays the source.
     """
     begin(db)

@@ -3,7 +3,7 @@
 # what changed since the last update. Nothing is committed to the repo.
 #
 # Each release is tagged census-<snapshot date>. Old ones are thinned by the
-# schedule in census/archive.py. Every check in the census scripts runs first:
+# schedule in census/store/archive.py. Every check in the census runs first:
 # if one fails, nothing is published and GitHub emails the failure.
 name: census
 
@@ -45,10 +45,10 @@ jobs:
           fi
 
       - name: Import the latest snapshot
-        run: uv run python census/census.py --download
+        run: uv run python -m census import --download
 
       - name: Condense it
-        run: uv run python census/condense.py
+        run: uv run python -m census condense
 
       - name: Publish the snapshot and the census
         run: |
@@ -74,5 +74,5 @@ jobs:
       - name: Thin old releases
         run: |
           gh release list --limit 200 --json tagName --jq '.[].tagName' \
-            | uv run python census/archive.py \
+            | uv run python -m census.store.archive \
             | while read -r tag; do gh release delete "$tag" --yes --cleanup-tag; done

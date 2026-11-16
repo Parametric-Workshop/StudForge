@@ -18,8 +18,8 @@ Shape share and usage share are always out of all candidate shapes, and
 decorated shape share out of all decorated shapes on candidate shapes (see
 GLOSSARY.md).
 
-census/census_viewer.py builds the tree from the condensed census and shows it;
-census/summary.py prints its top levels.
+census/coverage/viewer.py builds the tree from the condensed census and shows it;
+census/coverage/summary.py prints its top levels.
 """
 
 import re
@@ -28,11 +28,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from census import REPO
-from condensed_census import Assembly, DecoratedShape, Shape
+from census.store.census_db import Assembly, DecoratedShape, Shape
 
-GROUPS_PATH = REPO / "census" / "groups.toml"
-FAMILIES_PATH = REPO / "census" / "families.toml"
+GROUPS_PATH = Path(__file__).with_name("groups.toml")
+FAMILIES_PATH = Path(__file__).with_name("families.toml")
 
 # The first "W x L" in a shape's name, used to order shapes by size in a family.
 SIZE = re.compile(r"(\d+) x (\d+)")

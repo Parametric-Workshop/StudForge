@@ -1,6 +1,7 @@
 """Dated, compressed archives of the census, thinned as they age.
 
-After every import, census/census.py archives two things under archive/census/:
+After every import, census/importing/archiving.py archives two things under
+archive/census/:
 
   snapshot-2026-10-28.tar.gz    the Rebrickable CSVs, which can't be downloaded again
   census-2026-10-28.sqlite.gz   the census database as the import left it

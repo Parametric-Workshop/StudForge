@@ -1,8 +1,8 @@
-"""Tests for census/folding.py, on the sample census (see conftest.py)."""
+"""Tests for census/condensing/folding.py, on the sample census (see conftest.py)."""
 
 import pytest
 
-import folding
+from census.condensing import folding
 
 
 def test_decorated_shapes_fold_into_their_shape(rules: folding.FoldingRules) -> None:

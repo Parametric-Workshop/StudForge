@@ -3,7 +3,7 @@
 Statuses are recorded by hand in coverage/coverage.csv, which is committed so
 that everyone sees the same coverage and changes show up in pull requests.
 load() reads and checks that file, and works out the statuses that follow from
-it. condensed_census.write_coverage() copies them all into the census database,
+it. census_db.write_coverage() copies them all into the census database,
 as a working copy for SQL; the file stays the source.
 
 The rules (see GLOSSARY.md and docs/adr/0001-assemblies-are-not-shapes.md):
@@ -17,8 +17,8 @@ The rules (see GLOSSARY.md and docs/adr/0001-assemblies-are-not-shapes.md):
 import csv
 from pathlib import Path
 
-from census import REPO
-from condensed_census import Assembly, CondensedCensus, DecoratedShape, Shape
+from census.store.census_db import Assembly, CondensedCensus, DecoratedShape, Shape
+from census.store.files import REPO
 
 COVERAGE_PATH = REPO / "coverage" / "coverage.csv"
 

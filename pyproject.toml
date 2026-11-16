@@ -53,21 +53,8 @@ max-branches = 12
 max-statements = 50
 
 [tool.ruff.lint.isort]
-# The census scripts, imported by name in tests; sort them as our own code.
-known-first-party = [
-    "archive",
-    "candidates",
-    "changes",
-    "census",
-    "census_viewer",
-    "condensed_census",
-    "condense",
-    "coverage",
-    "folding",
-    "summary",
-    "tree",
-    "usage",
-]
+# The census package; sort its imports as our own code.
+known-first-party = ["census"]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests compare against expected numbers, which read best written inline.
@@ -77,8 +64,8 @@ known-first-party = [
 
 [tool.pytest.ini_options]
 testpaths = ["census/tests"]
-# The census scripts aren't a package yet; let tests import them by name.
-pythonpath = ["census"]
+# The repo folder, so tests can import the census package.
+pythonpath = ["."]
 
 # --- Type checking ----------------------------------------------------------
 # Checks that type hints are consistent, not just present. Editors that use
@@ -88,7 +75,7 @@ pythonpath = ["census"]
 typeCheckingMode = "strict"
 pythonVersion = "3.13"
 exclude = [".venv", "build", "downloads", ".git"]
-extraPaths = ["census"]  # matches pytest's pythonpath, so test imports resolve
+extraPaths = ["census/tests"]  # so one test file can import helpers from another
 
 # --- American English -------------------------------------------------------
 

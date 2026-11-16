@@ -2,14 +2,14 @@
 
 Only each set's latest inventory version counts, spares are left out, and a
 minifig's shapes count once per minifig in the set. Assemblies and decorated
-shapes count as the shapes they stand for (see census/folding.py), and each
+shapes count as the shapes they stand for (see census/condensing/folding.py), and each
 decorated shape also gets a usage of its own.
 """
 
 from collections import Counter, defaultdict
 
-from condensed_census import Census, read_table
-from folding import FoldingRules
+from census.condensing.folding import FoldingRules
+from census.store.census_db import Census, read_table
 
 # Usage broken down by set: per_set[part_num][set_num] = quantity, for every
 # shape and every decorated shape. A decorated shape's quantity also counts

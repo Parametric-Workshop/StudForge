@@ -3,8 +3,7 @@
 The viewer page has the full breakdown; this is the quick check after a run.
 """
 
-from condensed_census import PartNumbers
-from coverage import (
+from census.coverage.statuses import (
     DECORATED_STATUSES,
     SHAPE_MODELED,
     STATUSES,
@@ -12,7 +11,8 @@ from coverage import (
     group_by_status,
     in_group,
 )
-from tree import Node, find
+from census.coverage.tree import Node, find
+from census.store.census_db import PartNumbers
 
 LABEL_WIDTH = 48
 
