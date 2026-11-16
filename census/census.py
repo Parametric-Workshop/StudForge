@@ -33,6 +33,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+import archive
 from condensed_census import (
     DB_PATH,
     Census,
@@ -56,6 +57,8 @@ MANIFEST_PATH = REPO / "census" / "census-manifest.json"
 ARCHIVE_URL = "https://cdn.rebrickable.com/media/downloads/all_downloads.zip"
 DOWNLOAD_DIR = REPO / "downloads" / "rebrickable"
 LAST_DOWNLOAD_PATH = DOWNLOAD_DIR / "last_download.txt"
+# Dated, compressed copies of every snapshot and census (see archive.py). Local only.
+ARCHIVE_DIR = REPO / "archive" / "census"
 DOWNLOAD_INTERVAL = datetime.timedelta(days=1)
 MB = 1_000_000  # bytes, for progress messages and reading files to hash
 EXAMPLES = 3  # changes shown on screen of each kind; changes.txt has them all
@@ -320,6 +323,28 @@ def build_census(source: Path, snapshot_date: str) -> None:
     )
     print(f"  database: {DB_PATH.relative_to(REPO)}")
     print(f"  manifest: {MANIFEST_PATH.relative_to(REPO)}")
+    archive_import(source, snapshot_date)
+
+
+def archive_import(source: Path, snapshot_date: str) -> None:
+    """Archive the snapshot and the census just built from it, then thin old ones.
+
+    Also archives any dated snapshot folder that has no archive yet, so none is
+    thinned away before it was ever archived.
+    """
+    print("Archiving...", flush=True)
+    archive.archive_snapshot(source, ARCHIVE_DIR, snapshot_date)
+    have = archive.archived(ARCHIVE_DIR, archive.SNAPSHOT)
+    for folder in sorted(p for p in DOWNLOAD_DIR.glob("*-*-*") if p.is_dir()):
+        if folder.name not in {day.isoformat() for day in have}:
+            archive.archive_snapshot(folder, ARCHIVE_DIR, folder.name)
+    copy = archive.archive_census(DB_PATH, ARCHIVE_DIR, snapshot_date)
+    removed = archive.thin(ARCHIVE_DIR) + archive.thin_folders(
+        DOWNLOAD_DIR, ARCHIVE_DIR
+    )
+    print(f"  archive: {copy.parent.relative_to(REPO)}")
+    for path in removed:
+        print(f"  thinned: {path.relative_to(REPO)}")
 
 
 # --- Keeping the census current -------------------------------------------------
@@ -391,13 +416,20 @@ def warn_if_old(meta: dict[str, str]) -> None:
 
 
 def rebuild_census() -> None:
-    """Build the census from the manifest's snapshot, downloading if it isn't here.
+    """Build the census from the manifest's snapshot, wherever it can be found.
+
+    The snapshot's folder is used if it is here, else it is restored from the
+    archive, else the latest snapshot is downloaded.
 
     Rebrickable only offers its latest snapshot, so a download can bring a newer
     one than the manifest records; the manifest is then rewritten to match.
     """
     expected = manifest_snapshot()
     local_copy = DOWNLOAD_DIR / expected
+    if not local_copy.exists() and archive.restore_snapshot(
+        ARCHIVE_DIR, expected, DOWNLOAD_DIR
+    ):
+        print(f"Census: restored the {expected} snapshot from the archive")
     if local_copy.exists():
         print(f"Census: building from {local_copy.relative_to(REPO)}")
         check_snapshot_folder(local_copy)

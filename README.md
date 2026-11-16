@@ -31,9 +31,11 @@ StudForge tracks which real shapes it can print, weighted by how often each shap
    python3 census/census.py --download
    ```
 
-   Rebrickable allows this at most once a day, so a second download within 24 hours is refused. The CSVs are kept in `downloads/rebrickable/<date>/`, which you shouldn't delete: older snapshots can't be downloaded again. After a download, it prints what changed since the previous snapshot and saves those counts and every new, removed and renamed part number to `changes.txt` in the same folder. If you already have the CSVs from [rebrickable.com/downloads](https://rebrickable.com/downloads/), give their folder instead: `python3 census/census.py path/to/rebrickable_csvs`.
+   Rebrickable allows this at most once a day, so a second download within 24 hours is refused. The CSVs are kept in `downloads/rebrickable/<date>/`. After a download, it prints what changed since the previous snapshot and saves those counts and every new, removed and renamed part number to `changes.txt` in the same folder. If you already have the CSVs from [rebrickable.com/downloads](https://rebrickable.com/downloads/), give their folder instead: `python3 census/census.py path/to/rebrickable_csvs`.
 
    Either way, building takes a few seconds. It copies every CSV into `build/census.sqlite` (local only) and records the snapshot's date and file checksums in `census/census-manifest.json`.
+
+   Each build also archives the snapshot and the census it made, as dated, compressed files in `archive/census/` (local only). Don't delete that folder: older snapshots can't be downloaded again. Archives are thinned as they age, to the newest three, then one a month, a quarter, a half year and a year, and only the two newest uncompressed snapshot folders are kept.
 2. Build the condensed census:
 
    ```sh
