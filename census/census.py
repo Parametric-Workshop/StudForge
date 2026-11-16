@@ -59,6 +59,11 @@ DOWNLOAD_DIR = REPO / "downloads" / "rebrickable"
 LAST_DOWNLOAD_PATH = DOWNLOAD_DIR / "last_download.txt"
 # Dated, compressed copies of every snapshot and census (see archive.py). Local only.
 ARCHIVE_DIR = REPO / "archive" / "census"
+# Where the daily update publishes each snapshot's archive (see archive.py).
+RELEASE_URL = (
+    "https://github.com/Parametric-Workshop/StudForge/releases/download/"
+    "census-{date}/snapshot-{date}.tar.gz"
+)
 DOWNLOAD_INTERVAL = datetime.timedelta(days=1)
 MB = 1_000_000  # bytes, for progress messages and reading files to hash
 EXAMPLES = 3  # changes shown on screen of each kind; changes.txt has them all
@@ -415,21 +420,45 @@ def warn_if_old(meta: dict[str, str]) -> None:
         )
 
 
+def fetch_published_snapshot(snapshot_date: str) -> bool:
+    """Download a snapshot's archive from its GitHub release, if it isn't here.
+
+    Returns whether the archive is now in the archive folder. The daily update
+    publishes one release per snapshot and thins old ones, so an old date may be
+    gone.
+    """
+    target = archive.archive_path(ARCHIVE_DIR, archive.SNAPSHOT, snapshot_date)
+    if target.exists():
+        return True
+    url = RELEASE_URL.format(date=snapshot_date)
+    part = target.with_name(target.name + ".part")
+    ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        urllib.request.urlretrieve(url, part)
+    except urllib.error.URLError:
+        part.unlink(missing_ok=True)
+        return False
+    part.replace(target)
+    print(f"Census: fetched the {snapshot_date} snapshot from its GitHub release")
+    return True
+
+
 def rebuild_census() -> None:
     """Build the census from the manifest's snapshot, wherever it can be found.
 
-    The snapshot's folder is used if it is here, else it is restored from the
-    archive, else the latest snapshot is downloaded.
+    The snapshot's folder is used if it is here. If not, it is restored from the
+    archive, which is first topped up from the snapshot the daily update
+    published. Failing that, the latest snapshot is downloaded from Rebrickable.
 
     Rebrickable only offers its latest snapshot, so a download can bring a newer
     one than the manifest records; the manifest is then rewritten to match.
     """
     expected = manifest_snapshot()
     local_copy = DOWNLOAD_DIR / expected
-    if not local_copy.exists() and archive.restore_snapshot(
-        ARCHIVE_DIR, expected, DOWNLOAD_DIR
-    ):
-        print(f"Census: restored the {expected} snapshot from the archive")
+    if not local_copy.exists():
+        fetch_published_snapshot(expected)
+        if archive.restore_snapshot(ARCHIVE_DIR, expected, DOWNLOAD_DIR):
+            print(f"Census: restored the {expected} snapshot from the archive")
     if local_copy.exists():
         print(f"Census: building from {local_copy.relative_to(REPO)}")
         check_snapshot_folder(local_copy)

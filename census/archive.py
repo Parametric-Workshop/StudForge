@@ -9,6 +9,10 @@ Each archive is checked against its source before it counts as written. Archives
 then thinned on a fixed schedule (dates_to_keep), so their number stays small: recent
 ones are kept close together and older ones further apart.
 
+The daily update (.github/workflows/census.yml) publishes the same two files as a
+GitHub release for each date, and thins the releases by the same schedule: run as a
+script, this file reads release tags and prints the ones to delete.
+
 Nothing here knows where the census keeps its files: every function is given its
 folders, so the tests can run it all in a temporary one.
 """
@@ -17,6 +21,7 @@ import datetime
 import gzip
 import hashlib
 import shutil
+import sys
 import tarfile
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -34,6 +39,8 @@ KEEP_FOLDERS = 2
 SNAPSHOT = ("snapshot-", ".tar.gz")
 CENSUS = ("census-", ".sqlite.gz")
 MB = 1024 * 1024
+# The daily update publishes each date's archives as a GitHub release with this tag.
+RELEASE_PREFIX = "census-"
 
 Date = datetime.date
 # A period a date falls in, such as (2026, 4) for the fourth quarter of 2026.
@@ -208,3 +215,29 @@ def thin_folders(download_dir: Path, archive_dir: Path) -> list[Path]:
             shutil.rmtree(folders[day])
             removed.append(folders[day])
     return removed
+
+
+def names_to_drop(names: Iterable[str], prefix: str) -> list[str]:
+    """Return the names, of the form prefix + date, that the schedule drops.
+
+    For thinning things kept somewhere else under dated names, such as the
+    releases the daily update publishes. Names of any other form are ignored.
+    """
+    dated: dict[Date, str] = {}
+    for name in names:
+        try:
+            dated[Date.fromisoformat(name.removeprefix(prefix))] = name
+        except ValueError:
+            continue
+    keep = dates_to_keep(dated)
+    return [name for day, name in sorted(dated.items()) if day not in keep]
+
+
+def main() -> None:
+    """Read release tags, one a line, and print the census ones to delete."""
+    for name in names_to_drop(sys.stdin.read().split(), RELEASE_PREFIX):
+        print(name)
+
+
+if __name__ == "__main__":
+    main()

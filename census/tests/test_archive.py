@@ -122,3 +122,10 @@ def test_old_folders_go_only_once_archived(tmp_path: Path) -> None:
         "2026-10-28",
         "last_download.txt",
     ]
+
+
+def test_only_dated_names_with_the_prefix_are_thinned() -> None:
+    """Release tags thin by the same schedule; other tags are never listed."""
+    tags = [f"census-{day}" for day in days(Date(2026, 10, 24), 5)]
+    dropped = archive.names_to_drop([*tags, "v1.0", "census-notes"], "census-")
+    assert dropped == ["census-2026-10-24", "census-2026-10-25"]

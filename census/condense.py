@@ -23,11 +23,12 @@ Usage:
 import sys
 from collections import Counter, defaultdict
 
+import archive
 import changes
 import condensed_census
 import coverage
 from candidates import brick_system, exclusion
-from census import REPO, bring_census_up_to_date, now_text, sha256
+from census import ARCHIVE_DIR, REPO, bring_census_up_to_date, now_text, sha256
 from condensed_census import (
     DB_PATH,
     Assembly,
@@ -334,6 +335,8 @@ def condense_census() -> None:
     if sections is not None:
         print(f"  changes: {changes.summary(sections)}")
         print(f"  log: {CHANGES_PATH.relative_to(REPO)}")
+    # The archived copy for a snapshot is the census as last condensed.
+    archive.archive_census(DB_PATH, ARCHIVE_DIR, meta["snapshot_date"])
 
 
 def main() -> None:
