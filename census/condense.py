@@ -20,27 +20,26 @@ Usage:
   python3 census/condense.py
 """
 
-import sqlite3
 import sys
 from collections import Counter, defaultdict
 
 import condensed_census
 from candidates import brick_system, exclusion
-from census import (
-    DB_PATH,
-    REPO,
-    bring_census_up_to_date,
-    now_text,
-    read_table,
-    sha256,
-)
+from census import REPO, bring_census_up_to_date, now_text, sha256
 from condensed_census import (
+    DB_PATH,
     Assembly,
+    Census,
     CondensedCensus,
     DecoratedShape,
     Shape,
     ShapeSet,
     count_part_numbers,
+    open_census,
+    read_meta,
+    read_table,
+    row_count,
+    write_meta,
 )
 from folding import (
     MAX_ASSEMBLY_DEPTH,
@@ -72,13 +71,13 @@ SetInfo = tuple[str, int]
 # --- Building the records --------------------------------------------------------
 
 
-def load_sets(db: sqlite3.Connection) -> dict[str, SetInfo]:
+def load_sets(db: Census) -> dict[str, SetInfo]:
     """Return each set's (name, release year)."""
     return {r["set_num"]: (r["name"], int(r["year"])) for r in read_table(db, "sets")}
 
 
 def load_images(
-    db: sqlite3.Connection, rules: FoldingRules
+    db: Census, rules: FoldingRules
 ) -> tuple[dict[str, str], dict[str, str]]:
     """Return one photo URL per shape, and one per decorated shape.
 
@@ -118,7 +117,7 @@ def load_images(
     return shapes, decorated
 
 
-def load_ldraw_ids(db: sqlite3.Connection) -> dict[str, list[str]]:
+def load_ldraw_ids(db: Census) -> dict[str, list[str]]:
     """Return the LDraw file names Rebrickable maps to each part number."""
     ldraw: defaultdict[str, list[str]] = defaultdict(list)
     for r in read_table(db, "part_mappings"):
@@ -141,7 +140,7 @@ def usage_in_sets(
 
 
 def make_shapes_and_assemblies(
-    db: sqlite3.Connection,
+    db: Census,
     rules: FoldingRules,
     per_set: PerSetUsage,
     sets: dict[str, SetInfo],
@@ -196,7 +195,7 @@ def make_shapes_and_assemblies(
 
 
 def make_decorated_shapes(
-    db: sqlite3.Connection,
+    db: Census,
     rules: FoldingRules,
     per_set: PerSetUsage,
     sets: dict[str, SetInfo],
@@ -235,7 +234,7 @@ def make_shape_sets(shapes: list[Shape], per_set: PerSetUsage) -> list[ShapeSet]
 # --- Condensing ------------------------------------------------------------------
 
 
-def condense(db: sqlite3.Connection) -> tuple[int, int, int, int]:
+def condense(db: Census) -> tuple[int, int, int, int]:
     """Replace the condensed census tables, built from the census tables.
 
     Returns the number of shapes, candidate shapes, assemblies and official sets.
@@ -259,7 +258,7 @@ def condense(db: sqlite3.Connection) -> tuple[int, int, int, int]:
     # Every part number Rebrickable lists must become a shape, a decorated
     # shape or an assembly. Checked before writing, so a failure leaves the
     # previous condensed census in place.
-    part_numbers = db.execute("SELECT COUNT(*) FROM parts").fetchone()[0]
+    part_numbers = row_count(db, "parts")
     accounted = count_part_numbers(census).total
     if accounted != part_numbers:
         raise SystemExit(
@@ -267,14 +266,14 @@ def condense(db: sqlite3.Connection) -> tuple[int, int, int, int]:
             f"census accounts for {accounted:,}"
         )
     condensed_census.write(db, census, make_shape_sets(shapes, per_set))
-    db.executemany(
-        "INSERT OR REPLACE INTO meta VALUES (?,?)",
-        [
-            ("sets", str(official_sets)),
-            ("part_numbers", str(part_numbers)),
-            ("condensed_at", now_text()),
-        ]
-        + [(f"{name} sha256", checksum) for name, checksum in rule_checksums()],
+    write_meta(
+        db,
+        {
+            "sets": str(official_sets),
+            "part_numbers": str(part_numbers),
+            "condensed_at": now_text(),
+        }
+        | {f"{name} sha256": checksum for name, checksum in rule_checksums()},
     )
     db.commit()  # without this, sqlite discards everything on close
 
@@ -302,12 +301,10 @@ def changed_rule_files(meta: dict[str, str]) -> list[str]:
 
 def condense_census() -> None:
     """Build the condensed census and print what it holds."""
-    db = sqlite3.connect(DB_PATH)
+    db = open_census()
     shapes, candidates, assemblies, official_sets = condense(db)
-    snapshot_date = db.execute(
-        "SELECT value FROM meta WHERE key = 'snapshot_date'"
-    ).fetchone()[0]
     db.close()
+    snapshot_date = read_meta()["snapshot_date"]
     print(
         f"Condensed census {snapshot_date}: {shapes:,} shapes ({candidates:,} "
         f"candidates) and {assemblies:,} assemblies, from {official_sets:,} "

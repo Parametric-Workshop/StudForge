@@ -3,8 +3,8 @@
 Statuses are recorded by hand in coverage/coverage.csv, which is committed so
 that everyone sees the same coverage and changes show up in pull requests.
 load() reads and checks that file, and works out the statuses that follow from
-it. write_table() copies them all into the census database, as a working copy
-for SQL; the file stays the source.
+it. condensed_census.write_coverage() copies them all into the census database,
+as a working copy for SQL; the file stays the source.
 
 The rules (see GLOSSARY.md and docs/adr/0001-assemblies-are-not-shapes.md):
   - A shape has the status recorded for it, if any.
@@ -15,7 +15,6 @@ The rules (see GLOSSARY.md and docs/adr/0001-assemblies-are-not-shapes.md):
 """
 
 import csv
-import sqlite3
 from pathlib import Path
 
 from census import REPO
@@ -125,10 +124,3 @@ def group_by_status[T: (Shape, DecoratedShape)](
 def in_group[T](by_status: dict[str, list[T]], group: str) -> list[T]:
     """Return the items, from group_by_status(), in one of STATUS_GROUPS."""
     return [item for status in STATUS_GROUPS[group] for item in by_status[status]]
-
-
-def write_table(db: sqlite3.Connection, status_of: Statuses) -> None:
-    """Replace the coverage table with these statuses (commit afterwards)."""
-    db.execute("DROP TABLE IF EXISTS coverage")
-    db.execute("CREATE TABLE coverage (part_num TEXT PRIMARY KEY, status TEXT)")
-    db.executemany("INSERT INTO coverage VALUES (?, ?)", sorted(status_of.items()))

@@ -3,7 +3,7 @@
 Reads a folder of Rebrickable CSV downloads (https://rebrickable.com/downloads/),
 or downloads the latest one with --download, and writes:
 
-  build/census.sqlite            (gitignored; rebuilt from the CSVs at any time)
+  build/census.sqlite            (gitignored; built from the CSVs at any time)
   downloads/rebrickable/<date>/  (gitignored; the CSVs, when downloaded, and
                                  changes.txt, every change since the
                                  previous download)
@@ -27,18 +27,25 @@ import datetime
 import hashlib
 import json
 import os
-import sqlite3
 import time
 import urllib.error
 import urllib.request
 import zipfile
-from collections.abc import Iterator
 from pathlib import Path
+
+from condensed_census import (
+    DB_PATH,
+    Census,
+    add_index,
+    open_census,
+    read_meta,
+    write_meta,
+    write_table,
+)
 
 # The repository root and the census database; the other census scripts
 # import these from here.
 REPO = Path(__file__).resolve().parent.parent
-DB_PATH = REPO / "build" / "census.sqlite"
 MANIFEST_PATH = REPO / "census" / "census-manifest.json"
 
 # Rebrickable's archive of every CSV. Rebrickable allows downloading it
@@ -90,24 +97,11 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def load_csv(db: sqlite3.Connection, path: Path) -> int:
+def load_csv(db: Census, path: Path) -> int:
     """Copy one CSV into a table named after the file; return its row count."""
-    table = path.stem
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.reader(f)
-        columns = next(reader)
-        db.execute(f'CREATE TABLE "{table}" ({", ".join(columns)})')
-        placeholders = ",".join("?" * len(columns))
-        db.executemany(f'INSERT INTO "{table}" VALUES ({placeholders})', reader)
-    return db.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
-
-
-def read_table(db: sqlite3.Connection, table: str) -> Iterator[dict[str, str]]:
-    """Yield each row of a census table as a dict keyed by column name."""
-    cursor = db.execute(f'SELECT * FROM "{table}"')
-    columns = [c[0] for c in cursor.description]
-    for row in cursor:
-        yield dict(zip(columns, row, strict=True))
+        return write_table(db, path.stem, next(reader), reader)
 
 
 def now_text() -> str:
@@ -126,19 +120,18 @@ def create_census(
     """
     db_path.parent.mkdir(exist_ok=True)
     db_path.unlink(missing_ok=True)
-    db = sqlite3.connect(db_path)
+    db = open_census(db_path)
     counts = {Path(name).stem: load_csv(db, source / name) for name in SOURCE_FILES}
     for table, column in INDEXES:
-        db.execute(f"CREATE INDEX {table}_{column} ON {table} ({column})")
-    db.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
-    db.executemany(
-        "INSERT INTO meta VALUES (?,?)",
-        [
-            ("source", "Rebrickable"),
-            ("snapshot_date", snapshot_date),
-            ("built_at", now_text()),
-            ("manifest sha256", manifest_sha256),
-        ],
+        add_index(db, table, column)
+    write_meta(
+        db,
+        {
+            "source": "Rebrickable",
+            "snapshot_date": snapshot_date,
+            "built_at": now_text(),
+            "manifest sha256": manifest_sha256,
+        },
     )
     db.commit()  # without this, sqlite discards everything on close
     db.close()
@@ -330,16 +323,6 @@ def bring_census_up_to_date() -> None:
     if not census_is_current(read_meta()):
         rebuild_census()
     warn_if_old(read_meta())
-
-
-def read_meta() -> dict[str, str]:
-    """Return the census's meta table, or an empty dict if there's no census yet."""
-    if not DB_PATH.exists():
-        return {}
-    db = sqlite3.connect(DB_PATH)
-    meta = dict(db.execute("SELECT key, value FROM meta"))
-    db.close()
-    return meta
 
 
 def manifest_snapshot() -> str:

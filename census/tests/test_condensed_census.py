@@ -1,6 +1,7 @@
 """Tests for census/condensed_census.py, on the sample census (see conftest.py)."""
 
 import sqlite3
+from pathlib import Path
 
 import condense
 import condensed_census
@@ -47,3 +48,16 @@ def test_read_links_each_shape_to_what_it_holds(db: sqlite3.Connection) -> None:
     assert [a.part_num for a in shapes["4624"].assemblies] == ["4624c01"]
     wheel = census.assemblies[0]
     assert [d.part_num for d in wheel.decorated] == ["4624c01pr0001"]
+
+
+def test_coverage_is_saved_for_a_later_reader(tmp_path: Path) -> None:
+    """Statuses written to a census are there when it is opened again."""
+    path = tmp_path / "census.sqlite"
+    db = condensed_census.open_census(path)
+    condensed_census.write_coverage(db, {"3001": "modeled", "3003": "planned"})
+    db.close()
+
+    db = condensed_census.open_census(path)
+    saved = dict(db.execute("SELECT part_num, status FROM coverage"))
+    db.close()
+    assert saved == {"3001": "modeled", "3003": "planned"}

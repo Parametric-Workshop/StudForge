@@ -26,14 +26,19 @@ Usage:
 import argparse
 import json
 import re
-import sqlite3
 from pathlib import Path
 
 import condense
 import condensed_census
 import coverage
-from census import DB_PATH, REPO, bring_census_up_to_date, read_meta
-from condensed_census import Assembly, DecoratedShape, Shape, count_part_numbers
+from census import REPO, bring_census_up_to_date
+from condensed_census import (
+    Assembly,
+    DecoratedShape,
+    Shape,
+    count_part_numbers,
+    read_meta,
+)
 from coverage import (
     DECORATED_STATUSES,
     STATUSES,
@@ -230,11 +235,10 @@ def main() -> None:
     args = parser.parse_args()
     bring_census_up_to_date()
     meta = check_condensed(read_meta())
-    db = sqlite3.connect(DB_PATH)
+    db = condensed_census.open_census()
     census = condensed_census.read(db)
     status_of = coverage.load(census)
-    coverage.write_table(db, status_of)
-    db.commit()  # without this, sqlite discards the coverage table on close
+    condensed_census.write_coverage(db, status_of)
     db.close()
     numbers = count_part_numbers(census)
     # The root card: what the condensed census made of every part number.

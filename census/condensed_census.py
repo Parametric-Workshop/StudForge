@@ -1,18 +1,30 @@
-"""The condensed census tables: what they hold, and how to save and load them.
+"""Reading the census database: where it is, and how to load and save what it holds.
 
-census/condense.py builds the records below and saves them with write();
-census/census_viewer.py loads them with read(). This is the only file that
-knows the condensed tables' SQL. Each table's CREATE TABLE sits beside the
-class it stores, with the same names for columns and fields, so a table can
-be read straight back into its class.
+Everything that reads or writes the census goes through this file. It is the only
+one that holds SQL or knows the census is SQLite (census/tests/test_sql_in_one_place.py
+checks that), so a change of database is a change to this file alone:
+  - open_census() opens it; read_meta() says which snapshot it was built from and
+    when, from the details the build steps save with write_meta().
+  - write_table() and add_index() copy a table in from Rebrickable; read_table()
+    yields its rows and row_count() counts them.
+  - read() and read_shape_sets() load the condensed tables as the records below,
+    which census/condense.py builds and saves with write().
+  - write_coverage() saves the statuses census/coverage.py works out.
+
+Each condensed table's CREATE TABLE sits beside the class it stores, with the same
+names for columns and fields, so a table can be read straight back into its class.
 
 Terms follow GLOSSARY.md.
 """
 
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
+
+# build/ is local only: the census is built from a snapshot, never committed.
+DB_PATH = Path(__file__).resolve().parent.parent / "build" / "census.sqlite"
 
 
 def year_text(first_year: int | None, last_year: int | None) -> str:
@@ -213,9 +225,64 @@ def count_part_numbers(census: CondensedCensus) -> PartNumbers:
     )
 
 
-def write(
-    db: sqlite3.Connection, census: CondensedCensus, shape_sets: list[ShapeSet]
-) -> None:
+# An open census database. Other modules pass one along under this name, so this
+# file is the only one that knows the census is SQLite.
+type Census = sqlite3.Connection
+
+
+def open_census(path: Path = DB_PATH) -> Census:
+    """Open the census database, to pass to the functions below (close it after)."""
+    return sqlite3.connect(path)
+
+
+def read_meta() -> dict[str, str]:
+    """Return the census's meta table, or an empty dict if there's no census yet."""
+    if not DB_PATH.exists():
+        return {}
+    db = open_census()
+    meta = dict(db.execute("SELECT key, value FROM meta"))
+    db.close()
+    return meta
+
+
+def write_meta(db: Census, details: dict[str, str]) -> None:
+    """Add these details to the meta table, replacing any already there.
+
+    Makes the table in a new census. Commit afterwards.
+    """
+    db.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
+    db.executemany("INSERT OR REPLACE INTO meta VALUES (?,?)", details.items())
+
+
+def write_table(
+    db: Census, table: str, columns: Sequence[str], rows: Iterable[Sequence[str]]
+) -> int:
+    """Make a table with these columns, fill it with the rows, and return its row count.
+
+    For the tables copied from Rebrickable, whose columns are the CSV's header.
+    """
+    db.execute(f'CREATE TABLE "{table}" ({", ".join(columns)})')
+    placeholders = ",".join("?" * len(columns))
+    db.executemany(f'INSERT INTO "{table}" VALUES ({placeholders})', rows)
+    return row_count(db, table)
+
+
+def add_index(db: Census, table: str, column: str) -> None:
+    """Index a table by one column, so looking rows up by it is fast."""
+    db.execute(f"CREATE INDEX {table}_{column} ON {table} ({column})")
+
+
+def row_count(db: Census, table: str) -> int:
+    """Return how many rows a table holds."""
+    return db.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
+
+
+def read_table(db: Census, table: str) -> Iterator[dict[str, str]]:
+    """Yield each row of a Rebrickable table as a dict keyed by column name."""
+    return rows(db, f'SELECT * FROM "{table}"')
+
+
+def write(db: Census, census: CondensedCensus, shape_sets: list[ShapeSet]) -> None:
     """Replace the condensed tables with these records (commit afterwards)."""
     for table in TABLES:
         db.execute(f"DROP TABLE IF EXISTS {table}")
@@ -232,7 +299,7 @@ def write(
     db.executemany(INSERT_SHAPE_SET, [vars(s) for s in shape_sets])
 
 
-def rows(db: sqlite3.Connection, sql: str) -> Iterator[dict[str, Any]]:
+def rows(db: Census, sql: str) -> Iterator[dict[str, Any]]:
     """Yield each row of a query as a dict keyed by column name."""
     cursor = db.execute(sql)
     columns = [c[0] for c in cursor.description]
@@ -240,7 +307,7 @@ def rows(db: sqlite3.Connection, sql: str) -> Iterator[dict[str, Any]]:
         yield dict(zip(columns, row, strict=True))
 
 
-def read(db: sqlite3.Connection) -> CondensedCensus:
+def read(db: Census) -> CondensedCensus:
     """Load the condensed tables, with each record linked to the ones it holds.
 
     Each shape gets its decorated shapes and the assemblies it's in; each
@@ -268,6 +335,18 @@ def read(db: sqlite3.Connection) -> CondensedCensus:
     return CondensedCensus(shapes, decorated, assemblies)
 
 
-def read_shape_sets(db: sqlite3.Connection) -> list[ShapeSet]:
+def read_shape_sets(db: Census) -> list[ShapeSet]:
     """Load the usage of each shape in each official set."""
     return [ShapeSet(**r) for r in rows(db, "SELECT * FROM shape_set")]
+
+
+def write_coverage(db: Census, status_of: dict[str, str]) -> None:
+    """Replace the coverage table with each part number's status, and save it.
+
+    A working copy for SQL of what census/coverage.py works out;
+    coverage/coverage.csv stays the source.
+    """
+    db.execute("DROP TABLE IF EXISTS coverage")
+    db.execute("CREATE TABLE coverage (part_num TEXT PRIMARY KEY, status TEXT)")
+    db.executemany("INSERT INTO coverage VALUES (?, ?)", sorted(status_of.items()))
+    db.commit()  # without this, sqlite discards the table when the census is closed
