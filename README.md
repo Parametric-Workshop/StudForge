@@ -37,7 +37,7 @@ StudForge tracks which real shapes it can print, weighted by how often each shap
 
    Each build also archives the snapshot and the census it made, as dated, compressed files in `archive/census/` (local only). Don't delete that folder: older snapshots can't be downloaded again. Archives are thinned as they age, to the newest three, then one a month, a quarter, a half year and a year, and only the two newest uncompressed snapshot folders are kept.
 
-   A daily GitHub Actions workflow (`.github/workflows/census.yml`) does the same in the cloud and publishes each snapshot and its census as a release tagged `census-<date>`. When the snapshot the manifest names isn't on your machine, the scripts fetch it from that release before falling back to a fresh download from Rebrickable.
+   A daily GitHub Actions workflow (`.github/workflows/census.yml`) does the same in the cloud and publishes each snapshot and its census as a release tagged `census-<date>`. When the snapshot the manifest names isn't on your machine, the scripts fetch it from that release before falling back to a fresh download from Rebrickable. It runs at 02:00 Eastern and can be run by hand, but fails if the census was already downloaded that day. A second workflow (`.github/workflows/pages.yml`) then publishes the viewer at <https://parametric-workshop.github.io/StudForge/census/>.
 2. Build the condensed census:
 
    ```sh
